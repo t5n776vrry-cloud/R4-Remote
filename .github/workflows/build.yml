@@ -1,4 +1,4 @@
-# รีโมทเพลง R4 v1.5 — ไฟล์เดียวจบ
+# รีโมทเพลง R4 v1.6 — ไฟล์เดียวจบ
 # วางไฟล์นี้ไว้ที่ .github/workflows/build.yml ใน GitHub repo
 # GitHub จะสร้างโปรเจกต์และไฟล์ R4Remote.apk ให้เอง (ดูที่หน้า Releases)
 name: Build R4Remote APK
@@ -70,8 +70,8 @@ jobs:
                   applicationId 'com.r4remote'
                   minSdk 26
                   targetSdk 33
-                  versionCode 6
-                  versionName '1.5'
+                  versionCode 7
+                  versionName '1.6'
               }
 
               // ใช้กุญแจเซ็นแอปตัวเดิมทุกครั้ง เพื่อให้ติดตั้งเวอร์ชันใหม่ทับได้โดยไม่ต้องลบแอปเก่า
@@ -108,6 +108,8 @@ jobs:
               <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
               <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
               <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+              <!-- ให้เปิดเพลงใน YouTube Music จากผลค้นหาได้ขณะแอปอยู่เบื้องหลัง -->
+              <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
               <!-- เพื่อแสดงชื่อแอปที่กำลังเล่น (เช่น HiBy Music, Spotify) -->
               <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
 
@@ -818,7 +820,7 @@ jobs:
 
               private TextView statusText, urlText, hintText;
               private ImageView qr;
-              private Button accessBtn, batteryBtn, toggleBtn;
+              private Button accessBtn, batteryBtn, overlayBtn, toggleBtn;
               private final Handler handler = new Handler(Looper.getMainLooper());
 
               @Override
@@ -854,6 +856,16 @@ jobs:
                       }
                   });
                   col.addView(batteryBtn);
+
+                  overlayBtn = button(v -> {
+                      try {
+                          startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                                  Uri.parse("package:" + getPackageName())));
+                      } catch (Exception e) {
+                          startActivity(new Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION));
+                      }
+                  });
+                  col.addView(overlayBtn);
 
                   toggleBtn = button(v -> {
                       boolean run = !Util.wantRunning(this);
@@ -902,19 +914,22 @@ jobs:
                   boolean access = Util.hasMediaAccess(this);
                   boolean battery = getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(getPackageName());
                   boolean running = Util.wantRunning(this);
+                  boolean overlay = Settings.canDrawOverlays(this);
 
                   accessBtn.setText(access ? "✓ อนุญาตเข้าถึงการแจ้งเตือนแล้ว" : "1. อนุญาตเข้าถึงการแจ้งเตือน (จำเป็น)");
                   accessBtn.setTextColor(access ? ACCENT : FG);
                   batteryBtn.setText(battery ? "✓ ไม่จำกัดแบตเตอรี่แล้ว" : "2. ปิดการจำกัดแบตเตอรี่ (แนะนำ)");
                   batteryBtn.setTextColor(battery ? ACCENT : FG);
-                  toggleBtn.setText(running ? "หยุดรีโมท" : "3. เริ่มรีโมท");
+                  overlayBtn.setText(overlay ? "✓ อนุญาตแสดงทับแอปอื่นแล้ว" : "3. อนุญาตแสดงทับแอปอื่น (สำหรับค้นหา YouTube Music)");
+                  overlayBtn.setTextColor(overlay ? ACCENT : FG);
+                  toggleBtn.setText(running ? "หยุดรีโมท" : "4. เริ่มรีโมท");
 
                   String url = Util.url(this);
                   if (!running) {
                       statusText.setText("หยุดอยู่");
                       qr.setImageBitmap(null);
                       urlText.setText("");
-                      hintText.setText("ทำตามขั้นที่ 1–3 แล้วสแกน QR ด้วยกล้อง iPhone");
+                      hintText.setText("ทำตามขั้นที่ 1–4 แล้วสแกน QR ด้วยกล้อง iPhone");
                   } else if (url == null) {
                       statusText.setText("ยังไม่ได้ต่อ Wi-Fi");
                       qr.setImageBitmap(null);
@@ -1390,6 +1405,7 @@ jobs:
                   String pkg = currentPkg();
                   if (pkg == null) return error("เลือกแอปก่อน (แตะชื่อแอปบนหน้ารีโมท)");
                   if (q == null || q.trim().isEmpty()) return error("พิมพ์ชื่อเพลงหรือศิลปิน");
+                  if (YouTubeMusic.PKG.equals(pkg)) return youTubeSearch(q.trim());
                   List<android.support.v4.media.MediaBrowserCompat.MediaItem> items =
                           searcher.search(pkg, browserServices().get(pkg), q.trim());
                   if (items == null) {
@@ -1406,6 +1422,23 @@ jobs:
                   }
               }
 
+              /** YouTube Music ไม่ส่งผลค้นหาให้แอปอื่น จึงค้นจากเว็บ YouTube Music แทน */
+              private String youTubeSearch(String q) {
+                  if (!YouTubeMusic.canOpenFromBackground(this)) {
+                      return error("บน R4 เปิดแอปรีโมทเพลง แล้วกด “อนุญาตแสดงทับแอปอื่น” ก่อน จึงจะเปิดเพลงจากผลค้นหาได้");
+                  }
+                  try {
+                      JSONObject o = new JSONObject();
+                      JSONArray items = YouTubeMusic.search(q);
+                      o.put("ok", true);
+                      o.put("items", items);
+                      if (items.length() == 0) o.put("msg", "ไม่พบเพลงที่ค้นหา");
+                      return o.toString();
+                  } catch (Exception e) {
+                      return error("ค้นหาใน YouTube Music ไม่ได้ (" + e.getMessage() + ") ลอง “เล่นผลลัพธ์แรกเลย” แทน");
+                  }
+              }
+
               private boolean playQueueItem(String id) {
                   MediaController c = controller();
                   if (c == null || id == null) return false;
@@ -1419,6 +1452,13 @@ jobs:
               }
 
               private boolean playMediaId(String id) {
+                  if (id != null && id.startsWith(YouTubeMusic.ID_PREFIX)) {
+                      if (!YouTubeMusic.play(this, id.substring(YouTubeMusic.ID_PREFIX.length()))) return false;
+                      pauseOthers(YouTubeMusic.PKG);
+                      selectedPkg = YouTubeMusic.PKG;
+                      SystemClock.sleep(2500); // รอแอปเปิดและเริ่มเล่น
+                      return true;
+                  }
                   String pkg = currentPkg();
                   if (pkg == null || id == null) return false;
                   MediaBrowser b = lib.browser(pkg, browserServices().get(pkg));
@@ -1867,6 +1907,233 @@ jobs:
               static boolean hasMediaAccess(Context c) {
                   String s = Settings.Secure.getString(c.getContentResolver(), "enabled_notification_listeners");
                   return s != null && s.contains(c.getPackageName());
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/YouTubeMusic.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.content.Context;
+          import android.content.Intent;
+          import android.net.Uri;
+          import android.provider.Settings;
+
+          import org.json.JSONArray;
+          import org.json.JSONException;
+          import org.json.JSONObject;
+
+          import java.io.ByteArrayOutputStream;
+          import java.io.InputStream;
+          import java.io.OutputStream;
+          import java.net.HttpURLConnection;
+          import java.net.URL;
+          import java.nio.charset.StandardCharsets;
+          import java.util.ArrayList;
+          import java.util.HashSet;
+          import java.util.List;
+          import java.util.Set;
+
+          /**
+           * ค้นหาเพลงใน YouTube Music ผ่านช่องทางเว็บแบบไม่เป็นทางการ (InnerTube แบบเดียวกับเว็บ music.youtube.com)
+           * แล้วเปิดเพลงที่เลือกในแอป YouTube Music ด้วยลิงก์ watch?v=
+           * ถ้า YouTube เปลี่ยนรูปแบบข้อมูล ส่วนนี้อาจต้องแก้
+           */
+          final class YouTubeMusic {
+              static final String PKG = "com.google.android.apps.youtube.music";
+              static final String ID_PREFIX = "yt:";
+
+              private static final String ENDPOINT = "https://music.youtube.com/youtubei/v1/search?prettyPrint=false";
+              private static final String CLIENT_VERSION = "1.20250929.03.00";
+              /** ตัวกรอง "เพลง" (songs) แบบเดียวกับเว็บ YouTube Music */
+              private static final String SONGS_FILTER = "EgWKAQIIAWoMEA4QChADEAQQCRAF";
+              private static final int MAX_RESULTS = 30;
+
+              private YouTubeMusic() {}
+
+              static boolean canOpenFromBackground(Context c) {
+                  return Settings.canDrawOverlays(c);
+              }
+
+              /** คืนรายการผลค้นหา (อาจว่าง) หรือ throw ถ้าเชื่อมต่อไม่ได้ */
+              static JSONArray search(String query) throws Exception {
+                  JSONArray songs = parse(post(query, SONGS_FILTER));
+                  if (songs.length() > 0) return songs;
+                  return parse(post(query, null)); // ถ้าตัวกรองใช้ไม่ได้ ค้นแบบทั่วไปแทน
+              }
+
+              /** เปิดเพลงในแอป YouTube Music (ต้องได้สิทธิ์แสดงทับแอปอื่นจึงเปิดจากเบื้องหลังได้) */
+              static boolean play(Context c, String videoId) {
+                  if (videoId == null || !videoId.matches("[A-Za-z0-9_-]{6,20}")) return false;
+                  Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse("https://music.youtube.com/watch?v=" + videoId));
+                  i.setPackage(PKG);
+                  i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                  try {
+                      c.startActivity(i);
+                      return true;
+                  } catch (Exception e) {
+                      return false;
+                  }
+              }
+
+              private static JSONObject post(String query, String params) throws Exception {
+                  JSONObject client = new JSONObject();
+                  client.put("clientName", "WEB_REMIX");
+                  client.put("clientVersion", CLIENT_VERSION);
+                  client.put("hl", "th");
+                  client.put("gl", "TH");
+                  JSONObject context = new JSONObject();
+                  context.put("client", client);
+                  JSONObject body = new JSONObject();
+                  body.put("context", context);
+                  body.put("query", query);
+                  if (params != null) body.put("params", params);
+
+                  HttpURLConnection conn = (HttpURLConnection) new URL(ENDPOINT).openConnection();
+                  try {
+                      conn.setConnectTimeout(8000);
+                      conn.setReadTimeout(10000);
+                      conn.setRequestMethod("POST");
+                      conn.setDoOutput(true);
+                      conn.setRequestProperty("Content-Type", "application/json");
+                      conn.setRequestProperty("Origin", "https://music.youtube.com");
+                      conn.setRequestProperty("Referer", "https://music.youtube.com/");
+                      conn.setRequestProperty("User-Agent",
+                              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36");
+                      try (OutputStream os = conn.getOutputStream()) {
+                          os.write(body.toString().getBytes(StandardCharsets.UTF_8));
+                      }
+                      int code = conn.getResponseCode();
+                      if (code != 200) throw new Exception("HTTP " + code);
+                      try (InputStream is = conn.getInputStream()) {
+                          ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                          byte[] buf = new byte[16384];
+                          int n;
+                          while ((n = is.read(buf)) > 0) bo.write(buf, 0, n);
+                          return new JSONObject(new String(bo.toByteArray(), StandardCharsets.UTF_8));
+                      }
+                  } finally {
+                      conn.disconnect();
+                  }
+              }
+
+              // ------------------------------------------------------------------ แยกข้อมูลผลค้นหา
+
+              private static JSONArray parse(JSONObject root) throws JSONException {
+                  List<JSONObject> renderers = new ArrayList<>();
+                  collect(root, renderers, 0);
+                  JSONArray out = new JSONArray();
+                  Set<String> seen = new HashSet<>();
+                  for (JSONObject r : renderers) {
+                      if (out.length() >= MAX_RESULTS) break;
+                      String videoId = videoId(r);
+                      if (videoId == null || !seen.add(videoId)) continue;
+                      JSONArray cols = r.optJSONArray("flexColumns");
+                      String title = columnText(cols, 0);
+                      if (title.isEmpty()) continue;
+                      JSONObject o = new JSONObject();
+                      o.put("id", ID_PREFIX + videoId);
+                      o.put("title", title);
+                      o.put("subtitle", columnText(cols, 1));
+                      o.put("icon", thumbnail(r));
+                      o.put("browsable", false);
+                      o.put("playable", true);
+                      out.put(o);
+                  }
+                  return out;
+              }
+
+              /** หา musicResponsiveListItemRenderer ทุกตัวในข้อมูล */
+              private static void collect(Object node, List<JSONObject> out, int depth) {
+                  if (depth > 40 || node == null) return;
+                  if (node instanceof JSONObject) {
+                      JSONObject o = (JSONObject) node;
+                      JSONObject r = o.optJSONObject("musicResponsiveListItemRenderer");
+                      if (r != null) out.add(r);
+                      JSONArray names = o.names();
+                      if (names == null) return;
+                      for (int i = 0; i < names.length(); i++) {
+                          String key = names.optString(i);
+                          if ("musicResponsiveListItemRenderer".equals(key)) continue;
+                          collect(o.opt(key), out, depth + 1);
+                      }
+                  } else if (node instanceof JSONArray) {
+                      JSONArray a = (JSONArray) node;
+                      for (int i = 0; i < a.length(); i++) collect(a.opt(i), out, depth + 1);
+                  }
+              }
+
+              private static String videoId(JSONObject r) {
+                  JSONObject pid = r.optJSONObject("playlistItemData");
+                  if (pid != null && pid.optString("videoId", "").length() > 0) return pid.optString("videoId");
+                  return findString(r.optJSONObject("overlay"), "videoId", 0);
+              }
+
+              private static String columnText(JSONArray cols, int index) {
+                  if (cols == null || cols.length() <= index) return "";
+                  JSONObject col = cols.optJSONObject(index);
+                  JSONObject renderer = col == null ? null : col.optJSONObject("musicResponsiveListItemFlexColumnRenderer");
+                  JSONObject text = renderer == null ? null : renderer.optJSONObject("text");
+                  JSONArray runs = text == null ? null : text.optJSONArray("runs");
+                  if (runs == null) return "";
+                  StringBuilder sb = new StringBuilder();
+                  for (int i = 0; i < runs.length(); i++) {
+                      JSONObject run = runs.optJSONObject(i);
+                      if (run != null) sb.append(run.optString("text", ""));
+                  }
+                  return sb.toString().trim();
+              }
+
+              private static String thumbnail(JSONObject r) {
+                  JSONArray thumbs = findArray(r.optJSONObject("thumbnail"), "thumbnails", 0);
+                  if (thumbs == null || thumbs.length() == 0) return "";
+                  JSONObject best = thumbs.optJSONObject(thumbs.length() - 1);
+                  String url = best == null ? "" : best.optString("url", "");
+                  return url.startsWith("https://") ? url : "";
+              }
+
+              private static String findString(Object node, String key, int depth) {
+                  if (depth > 20 || node == null) return null;
+                  if (node instanceof JSONObject) {
+                      JSONObject o = (JSONObject) node;
+                      String v = o.optString(key, "");
+                      if (v.length() > 0) return v;
+                      JSONArray names = o.names();
+                      if (names == null) return null;
+                      for (int i = 0; i < names.length(); i++) {
+                          String found = findString(o.opt(names.optString(i)), key, depth + 1);
+                          if (found != null) return found;
+                      }
+                  } else if (node instanceof JSONArray) {
+                      JSONArray a = (JSONArray) node;
+                      for (int i = 0; i < a.length(); i++) {
+                          String found = findString(a.opt(i), key, depth + 1);
+                          if (found != null) return found;
+                      }
+                  }
+                  return null;
+              }
+
+              private static JSONArray findArray(Object node, String key, int depth) {
+                  if (depth > 20 || node == null) return null;
+                  if (node instanceof JSONObject) {
+                      JSONObject o = (JSONObject) node;
+                      JSONArray v = o.optJSONArray(key);
+                      if (v != null) return v;
+                      JSONArray names = o.names();
+                      if (names == null) return null;
+                      for (int i = 0; i < names.length(); i++) {
+                          JSONArray found = findArray(o.opt(names.optString(i)), key, depth + 1);
+                          if (found != null) return found;
+                      }
+                  } else if (node instanceof JSONArray) {
+                      JSONArray a = (JSONArray) node;
+                      for (int i = 0; i < a.length(); i++) {
+                          JSONArray found = findArray(a.opt(i), key, depth + 1);
+                          if (found != null) return found;
+                      }
+                  }
+                  return null;
               }
           }
           R4EOF
