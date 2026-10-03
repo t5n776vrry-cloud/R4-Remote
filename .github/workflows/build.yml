@@ -226,7 +226,7 @@ jobs:
           .pick svg{width:20px;height:20px;fill:var(--acc)}
           .panel.tall{height:88vh;max-height:none}
           .panel.tall .list{flex:1}
-          .top{position:relative}
+          .top{position:relative;height:40px}
           .x{position:absolute;right:12px;top:6px;border:0;background:none;color:var(--acc);font:600 15px -apple-system,sans-serif;padding:6px 8px}
           .tabs{display:flex;gap:6px;margin:4px 14px 10px;background:#13161c;border-radius:12px;padding:4px}
           .tabs button{flex:1;border:0;background:none;color:var(--mut);font:600 14px -apple-system,sans-serif;padding:9px 0;border-radius:9px}
@@ -287,9 +287,8 @@ jobs:
             <div class="bar hide" id="navbar"><button class="back" id="back">‹ ย้อนกลับ</button><div class="crumb" id="crumb"></div></div>
             <form class="bar hide" id="sform" autocomplete="off">
              <input class="sbox" id="sq" type="search" enterkeyhint="search" placeholder="ชื่อเพลง ศิลปิน หรืออัลบั้ม">
-             <button class="go" type="submit">ค้นหา</button>
+             <button class="go" type="submit">▶ เล่น</button>
             </form>
-            <button class="quick hide" id="quick">▶ เล่นผลลัพธ์แรกเลย</button>
             <div class="list" id="liblist"></div>
            </div>
           </div>
@@ -427,12 +426,10 @@ jobs:
             $("tabs").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
             $("sform").classList.toggle("hide", t !== "search");
             $("navbar").classList.toggle("hide", t !== "browse" || !stack.length);
-            $("quick").classList.add("hide");
             if (noLoad) return;
             if (t === "queue") loadQueue();
             else if (t === "browse") loadBrowse();
-            else if (lastQuery) runSearch(lastQuery);
-            else msg("พิมพ์ชื่อเพลง ศิลปิน หรืออัลบั้ม แล้วแตะค้นหา");
+            else msg("พิมพ์ชื่อเพลง ศิลปิน หรืออัลบั้ม แล้วแตะ “เล่น” — แอปจะหาเพลงที่ตรงที่สุดแล้วเล่นทันที");
           }
 
           async function loadQueue(){
@@ -458,15 +455,9 @@ jobs:
             }catch(e){ msg("โหลดคลังเพลงไม่ได้"); }
           }
 
-          async function runSearch(q){
+          function runSearch(q){
             lastQuery = q;
-            $("quick").classList.remove("hide");
-            msg("กำลังค้นหา…");
-            try{
-              const d = await getJSON("/api/search", "&q=" + encodeURIComponent(q));
-              if (!d.items.length) return msg(d.msg || "ไม่พบเพลงที่ค้นหา");
-              render(d.items, "media");
-            }catch(e){ msg("ค้นหาไม่ได้"); }
+            play("/api/searchplay", "&q=" + encodeURIComponent(q));
           }
 
           async function play(path, extra){
@@ -487,14 +478,12 @@ jobs:
             $("sq").blur();
             runSearch(q);
           });
-          $("quick").addEventListener("click", () => { if (lastQuery) play("/api/searchplay", "&q=" + encodeURIComponent(lastQuery)); });
           $("liblist").addEventListener("click", e => {
             const item = e.target.closest(".item");
             if (!item) return;
             const id = item.dataset.id;
             if (item.dataset.kind === "queue") return play("/api/queue/play", "&id=" + encodeURIComponent(id));
             if (item.dataset.b === "1" && !e.target.closest(".go2")) {
-              if (tab === "search") { stack = []; setTab("browse", true); }
               stack.push({id, title: item.dataset.title || "…"});
               return loadBrowse();
             }
@@ -672,32 +661,6 @@ jobs:
                       }
                   });
                   await(done, 8);
-                  return res.get();
-              }
-
-              /** ค้นหาในแอป คืน null ถ้าแอปไม่รองรับการส่งผลค้นหา */
-              List<MediaBrowser.MediaItem> search(MediaBrowser b, String query) {
-                  AtomicReference<List<MediaBrowser.MediaItem>> res = new AtomicReference<>();
-                  CountDownLatch done = new CountDownLatch(1);
-                  main.post(() -> {
-                      try {
-                          b.search(query, new Bundle(), new MediaBrowser.SearchCallback() {
-                              @Override
-                              public void onSearchResult(String q, Bundle extras, List<MediaBrowser.MediaItem> items) {
-                                  res.set(items);
-                                  done.countDown();
-                              }
-
-                              @Override
-                              public void onError(String q, Bundle extras) {
-                                  done.countDown();
-                              }
-                          });
-                      } catch (Exception e) {
-                          done.countDown();
-                      }
-                  });
-                  await(done, 10);
                   return res.get();
               }
 
@@ -1172,8 +1135,6 @@ jobs:
                           sendJson(out, queue());
                       } else if ("GET".equals(method) && "/api/browse".equals(path)) {
                           sendJson(out, browse(uri.getQueryParameter("id")));
-                      } else if ("GET".equals(method) && "/api/search".equals(path)) {
-                          sendJson(out, search(uri.getQueryParameter("q")));
                       } else if ("GET".equals(method) && "/api/img".equals(path)) {
                           byte[] img = lib.image(uri.getQueryParameter("i"));
                           if (img == null) send(out, 404, "text/plain", new byte[0]);
@@ -1388,24 +1349,6 @@ jobs:
                       return o.toString();
                   } catch (JSONException e) {
                       return error("อ่านรายการไม่ได้");
-                  }
-              }
-
-              private String search(String q) {
-                  String pkg = currentPkg();
-                  if (pkg == null) return error("เลือกแอปก่อน (แตะชื่อแอปบนหน้ารีโมท)");
-                  if (q == null || q.trim().isEmpty()) return error("พิมพ์ชื่อเพลงหรือศิลปิน");
-                  MediaBrowser b = lib.browser(pkg, browserServices().get(pkg));
-                  List<MediaBrowser.MediaItem> items = b == null ? null : lib.search(b, q.trim());
-                  if (items == null) return error(appLabel(pkg) + " ไม่ส่งรายการผลค้นหามา แตะ “เล่นผลลัพธ์แรกเลย” แทนได้");
-                  try {
-                      JSONObject o = new JSONObject();
-                      o.put("ok", true);
-                      o.put("items", lib.itemsJson(items));
-                      if (items.isEmpty()) o.put("msg", "ไม่พบเพลงที่ค้นหา");
-                      return o.toString();
-                  } catch (JSONException e) {
-                      return error("อ่านผลค้นหาไม่ได้");
                   }
               }
 
