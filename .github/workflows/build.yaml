@@ -1,0 +1,909 @@
+# รีโมทเพลง R4 — ไฟล์เดียวจบ
+# วางไฟล์นี้ไว้ที่ .github/workflows/build.yml ใน GitHub repo
+# GitHub จะสร้างโปรเจกต์และไฟล์ R4Remote.apk ให้เอง (ดูที่หน้า Releases)
+name: Build R4Remote APK
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.7'
+
+      - name: Create project files
+        run: |
+          set -e
+          mkdir -p src && cd src
+          cat > settings.gradle <<'R4EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+          dependencyResolutionManagement {
+              repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+          rootProject.name = "R4Remote"
+          include ':app'
+          R4EOF
+          cat > build.gradle <<'R4EOF'
+          plugins {
+              id 'com.android.application' version '8.5.2' apply false
+          }
+          R4EOF
+          cat > gradle.properties <<'R4EOF'
+          org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
+          android.nonTransitiveRClass=true
+          R4EOF
+          mkdir -p app
+          cat > app/build.gradle <<'R4EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.r4remote'
+              compileSdk 34
+
+              defaultConfig {
+                  applicationId 'com.r4remote'
+                  minSdk 26
+                  targetSdk 33
+                  versionCode 1
+                  versionName '1.0'
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+
+          dependencies {
+              implementation 'com.google.zxing:core:3.5.3'
+          }
+          R4EOF
+          mkdir -p app/src/main
+          cat > app/src/main/AndroidManifest.xml <<'R4EOF'
+          <?xml version="1.0" encoding="utf-8"?>
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+              <uses-permission android:name="android.permission.INTERNET" />
+              <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+              <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+              <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+              <uses-permission android:name="android.permission.WAKE_LOCK" />
+              <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+              <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+              <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+              <!-- เพื่อแสดงชื่อแอปที่กำลังเล่น (เช่น HiBy Music, Spotify) -->
+              <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES" />
+
+              <application
+                  android:allowBackup="false"
+                  android:icon="@android:drawable/ic_media_play"
+                  android:label="รีโมทเพลง R4"
+                  android:theme="@android:style/Theme.DeviceDefault">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:exported="true"
+                      android:screenOrientation="portrait">
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN" />
+                          <category android:name="android.intent.category.LAUNCHER" />
+                      </intent-filter>
+                  </activity>
+
+                  <service
+                      android:name=".RemoteService"
+                      android:exported="false" />
+
+                  <!-- ต้องได้สิทธิ์ "เข้าถึงการแจ้งเตือน" จึงจะควบคุม/อ่านข้อมูลเพลงจากทุกแอปได้ -->
+                  <service
+                      android:name=".MediaListener"
+                      android:exported="true"
+                      android:label="รีโมทเพลง R4"
+                      android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+                      <intent-filter>
+                          <action android:name="android.service.notification.NotificationListenerService" />
+                      </intent-filter>
+                  </service>
+
+                  <receiver
+                      android:name=".BootReceiver"
+                      android:exported="true">
+                      <intent-filter>
+                          <action android:name="android.intent.action.BOOT_COMPLETED" />
+                      </intent-filter>
+                  </receiver>
+              </application>
+          </manifest>
+          R4EOF
+          mkdir -p app/src/main/assets
+          cat > app/src/main/assets/index.html <<'R4EOF'
+          <!doctype html>
+          <html lang="th"><head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
+          <meta name="apple-mobile-web-app-capable" content="yes">
+          <meta name="mobile-web-app-capable" content="yes">
+          <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+          <meta name="apple-mobile-web-app-title" content="รีโมท R4">
+          <meta name="theme-color" content="#0f1115">
+          <title>รีโมท R4</title>
+          <style>
+          :root{--bg:#0f1115;--card:#1a1d24;--fg:#f2f3f5;--mut:#8b919c;--acc:#1ed760}
+          *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+          html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
+           font-family:-apple-system,BlinkMacSystemFont,"Sukhumvit Set",sans-serif;user-select:none;-webkit-user-select:none}
+          main{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:28px;max-width:440px;margin:0 auto;
+           padding:calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px)}
+          .art{width:min(72vw,300px);aspect-ratio:1;margin:0 auto;border-radius:18px;background:var(--card);
+           display:grid;place-items:center;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45)}
+          .art img{width:100%;height:100%;object-fit:cover;display:none}
+          .art svg{width:64px;height:64px;fill:#333844}
+          .np{text-align:center}
+          .player{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);min-height:15px}
+          .title{font-size:22px;font-weight:700;margin:8px 0 4px;min-height:28px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .artist{font-size:15px;color:var(--mut);min-height:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .row{display:flex;justify-content:center;align-items:center;gap:28px}
+          button{border:0;background:var(--card);color:var(--fg);border-radius:50%;display:grid;place-items:center;
+           width:72px;height:72px;transition:transform .08s,background .15s}
+          button:active{transform:scale(.9);background:#262a33}
+          button.big{width:92px;height:92px;background:var(--fg);color:var(--bg)}
+          button.big:active{background:#cfd2d8}
+          button.sm{width:56px;height:56px}
+          svg{width:30px;height:30px;fill:currentColor}
+          .big svg{width:40px;height:40px}
+          .sm svg{width:24px;height:24px}
+          .vol{font-size:14px;color:var(--mut);min-width:64px;text-align:center}
+          .status{text-align:center;font-size:13px;color:var(--mut);min-height:16px}
+          .status.err{color:#ff6b6b}
+          </style></head><body>
+          <main>
+           <div class="art"><img id="art" alt=""><svg id="noart" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></div>
+           <div class="np">
+            <div class="player" id="player"></div>
+            <div class="title" id="title">กำลังเชื่อมต่อ…</div>
+            <div class="artist" id="artist"></div>
+           </div>
+           <div class="row">
+            <button data-a="prev" aria-label="เพลงก่อนหน้า"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+            <button class="big" data-a="playpause" aria-label="เล่น/หยุด"><svg id="pp" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+            <button data-a="next" aria-label="เพลงถัดไป"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zM16 6h2v12h-2z"/></svg></button>
+           </div>
+           <div class="row">
+            <button class="sm" data-a="voldown" aria-label="ลดเสียง"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14z"/></svg></button>
+            <div class="vol" id="vol">–</div>
+            <button class="sm" data-a="volup" aria-label="เพิ่มเสียง"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>
+            <button class="sm" data-a="mute" aria-label="ปิดเสียง"><svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.42.05-.65zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9zM12 4 9.91 6.09 12 8.18z"/></svg></button>
+           </div>
+           <div class="status" id="st"></div>
+          </main>
+          <script>
+          const K = new URLSearchParams(location.search).get("k") || "";
+          const $ = id => document.getElementById(id);
+          const PLAY = '<path d="M8 5v14l11-7z"/>', PAUSE = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
+          let artKey = null;
+
+          $("art").onload = () => { $("art").style.display = "block"; $("noart").style.display = "none"; };
+          $("art").onerror = () => { $("art").style.display = "none"; $("noart").style.display = "block"; };
+
+          function show(d){
+            $("player").textContent = d.player || "";
+            $("title").textContent = d.title || (d.state === "stopped" ? "ไม่มีเพลงกำลังเล่น" : "");
+            $("artist").textContent = d.artist || "";
+            $("pp").innerHTML = d.state === "playing" ? PAUSE : PLAY;
+            $("vol").textContent = d.muted ? "ปิดเสียง" : "เสียง " + d.volume + "%";
+            if (d.art !== artKey) {
+              artKey = d.art;
+              if (d.art) $("art").src = "/api/art?k=" + encodeURIComponent(K) + "&v=" + d.art;
+              else { $("art").removeAttribute("src"); $("art").style.display = "none"; $("noart").style.display = "block"; }
+            }
+            if (d.perm === false) {
+              $("st").textContent = "บน R4 ยังไม่ได้อนุญาต “เข้าถึงการแจ้งเตือน” — ใช้ได้แค่ปุ่มพื้นฐาน";
+              $("st").className = "status err";
+            } else { $("st").textContent = ""; $("st").className = "status"; }
+          }
+          function fail(){ $("st").textContent = "เชื่อมต่อ R4 ไม่ได้ — ตรวจว่าเปิดรีโมทอยู่และต่อ Wi-Fi เดียวกัน"; $("st").className = "status err"; }
+
+          async function call(path, opts){
+            try{
+              const r = await fetch(path + "?k=" + encodeURIComponent(K), opts);
+              if(!r.ok) throw 0;
+              show(await r.json());
+            }catch(e){ fail(); }
+          }
+          document.querySelectorAll("button[data-a]").forEach(b =>
+            b.addEventListener("click", () => call("/api/" + b.dataset.a, {method:"POST"})));
+
+          call("/api/status");
+          setInterval(() => { if(!document.hidden) call("/api/status"); }, 2500);
+          document.addEventListener("visibilitychange", () => { if(!document.hidden) call("/api/status"); });
+          </script>
+          </body></html>
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/MediaListener.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.service.notification.NotificationListenerService;
+
+          /**
+           * ไม่ได้ทำอะไรกับการแจ้งเตือนเลย มีไว้เพื่อให้ระบบอนุญาต
+           * ให้แอปเข้าถึง MediaSession ของทุกแอป (getActiveSessions)
+           */
+          public class MediaListener extends NotificationListenerService {
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/BootReceiver.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.content.BroadcastReceiver;
+          import android.content.Context;
+          import android.content.Intent;
+
+          /** เปิดรีโมทอัตโนมัติหลังเปิดเครื่อง ถ้าครั้งล่าสุดเปิดค้างไว้ */
+          public class BootReceiver extends BroadcastReceiver {
+              @Override
+              public void onReceive(Context context, Intent intent) {
+                  if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()) && Util.wantRunning(context)) {
+                      Util.startService(context);
+                  }
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/Util.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.content.Context;
+          import android.content.Intent;
+          import android.content.SharedPreferences;
+          import android.provider.Settings;
+
+          import java.net.Inet4Address;
+          import java.net.InetAddress;
+          import java.net.NetworkInterface;
+          import java.security.SecureRandom;
+          import java.util.Collections;
+
+          final class Util {
+              static final int PORT = 8765;
+              private static final String PREFS = "r4remote";
+
+              private Util() {}
+
+              private static SharedPreferences prefs(Context c) {
+                  return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+              }
+
+              /** รหัสลับในลิงก์ สุ่มครั้งเดียวแล้วจำไว้ ลิงก์จึงไม่เปลี่ยน */
+              static synchronized String token(Context c) {
+                  SharedPreferences p = prefs(c);
+                  String t = p.getString("token", null);
+                  if (t == null) {
+                      String chars = "abcdefghjkmnpqrstuvwxyz23456789";
+                      SecureRandom r = new SecureRandom();
+                      StringBuilder sb = new StringBuilder();
+                      for (int i = 0; i < 8; i++) sb.append(chars.charAt(r.nextInt(chars.length())));
+                      t = sb.toString();
+                      p.edit().putString("token", t).apply();
+                  }
+                  return t;
+              }
+
+              static boolean wantRunning(Context c) {
+                  return prefs(c).getBoolean("run", false);
+              }
+
+              static void setWantRunning(Context c, boolean run) {
+                  prefs(c).edit().putBoolean("run", run).apply();
+              }
+
+              static void startService(Context c) {
+                  c.startForegroundService(new Intent(c, RemoteService.class));
+              }
+
+              static void stopService(Context c) {
+                  c.stopService(new Intent(c, RemoteService.class));
+              }
+
+              /** IP ของเครื่องในวง Wi-Fi (เลือก wlan ก่อน) */
+              static String ip() {
+                  String fallback = null;
+                  try {
+                      for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                          if (!ni.isUp() || ni.isLoopback()) continue;
+                          for (InetAddress a : Collections.list(ni.getInetAddresses())) {
+                              if (!(a instanceof Inet4Address) || a.isLoopbackAddress()) continue;
+                              if (ni.getName().startsWith("wlan")) return a.getHostAddress();
+                              if (fallback == null) fallback = a.getHostAddress();
+                          }
+                      }
+                  } catch (Exception ignored) {
+                  }
+                  return fallback;
+              }
+
+              static String url(Context c) {
+                  String ip = ip();
+                  return ip == null ? null : "http://" + ip + ":" + PORT + "/?k=" + token(c);
+              }
+
+              static boolean hasMediaAccess(Context c) {
+                  String s = Settings.Secure.getString(c.getContentResolver(), "enabled_notification_listeners");
+                  return s != null && s.contains(c.getPackageName());
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/RemoteService.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.app.Notification;
+          import android.app.NotificationChannel;
+          import android.app.NotificationManager;
+          import android.app.PendingIntent;
+          import android.app.Service;
+          import android.content.ComponentName;
+          import android.content.Intent;
+          import android.content.pm.PackageManager;
+          import android.graphics.Bitmap;
+          import android.media.AudioManager;
+          import android.media.MediaMetadata;
+          import android.media.session.MediaController;
+          import android.media.session.MediaSessionManager;
+          import android.media.session.PlaybackState;
+          import android.net.Uri;
+          import android.net.wifi.WifiManager;
+          import android.os.IBinder;
+          import android.os.PowerManager;
+          import android.os.SystemClock;
+          import android.view.KeyEvent;
+
+          import org.json.JSONObject;
+
+          import java.io.BufferedReader;
+          import java.io.ByteArrayOutputStream;
+          import java.io.IOException;
+          import java.io.InputStream;
+          import java.io.InputStreamReader;
+          import java.io.OutputStream;
+          import java.net.InetSocketAddress;
+          import java.net.ServerSocket;
+          import java.net.Socket;
+          import java.nio.charset.StandardCharsets;
+          import java.security.MessageDigest;
+          import java.util.List;
+          import java.util.concurrent.ExecutorService;
+          import java.util.concurrent.Executors;
+
+          /**
+           * เซิร์ฟเวอร์ HTTP เล็กๆ บน R4 ให้ iPhone เปิดหน้าควบคุมผ่าน Safari
+           * ควบคุมได้ทุกแอปที่มี MediaSession (HiBy Music, Spotify, TIDAL, YouTube Music, Apple Music ฯลฯ)
+           */
+          public class RemoteService extends Service {
+              private static final String CHANNEL = "remote";
+
+              private ServerSocket server;
+              private ExecutorService pool;
+              private PowerManager.WakeLock wakeLock;
+              private WifiManager.WifiLock wifiLock;
+              private String token;
+              private byte[] page;
+              private volatile boolean mediaAccess = true;
+
+              @Override
+              public void onCreate() {
+                  super.onCreate();
+                  token = Util.token(this);
+                  page = readAsset("index.html");
+                  startForeground(1, buildNotification());
+
+                  PowerManager pm = getSystemService(PowerManager.class);
+                  wakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "r4remote:server");
+                  wakeLock.acquire();
+                  WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+                  wifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "r4remote");
+                  wifiLock.acquire();
+
+                  pool = Executors.newCachedThreadPool();
+                  new Thread(this::serve, "r4remote-http").start();
+              }
+
+              @Override
+              public int onStartCommand(Intent intent, int flags, int startId) {
+                  return START_STICKY;
+              }
+
+              @Override
+              public void onDestroy() {
+                  try {
+                      if (server != null) server.close();
+                  } catch (IOException ignored) {
+                  }
+                  if (pool != null) pool.shutdownNow();
+                  if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
+                  if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
+                  super.onDestroy();
+              }
+
+              @Override
+              public IBinder onBind(Intent intent) {
+                  return null;
+              }
+
+              // ------------------------------------------------------------------ HTTP
+
+              private void serve() {
+                  try {
+                      server = new ServerSocket();
+                      server.setReuseAddress(true);
+                      server.bind(new InetSocketAddress(Util.PORT));
+                      while (!server.isClosed()) {
+                          Socket s = server.accept();
+                          pool.execute(() -> handle(s));
+                      }
+                  } catch (IOException ignored) {
+                      // ปิดเซิร์ฟเวอร์แล้ว
+                  }
+              }
+
+              private void handle(Socket socket) {
+                  try (Socket s = socket) {
+                      s.setSoTimeout(5000);
+                      BufferedReader in = new BufferedReader(
+                              new InputStreamReader(s.getInputStream(), StandardCharsets.UTF_8));
+                      String requestLine = in.readLine();
+                      if (requestLine == null) return;
+                      String[] parts = requestLine.split(" ");
+                      if (parts.length < 2) return;
+                      String header;
+                      while ((header = in.readLine()) != null && !header.isEmpty()) {
+                          // ไม่ต้องใช้ header
+                      }
+
+                      String method = parts[0];
+                      Uri uri = Uri.parse("http://r4" + parts[1]);
+                      String path = uri.getPath() == null ? "/" : uri.getPath();
+                      String k = uri.getQueryParameter("k");
+                      OutputStream out = s.getOutputStream();
+
+                      if (k == null || !MessageDigest.isEqual(
+                              k.getBytes(StandardCharsets.UTF_8), token.getBytes(StandardCharsets.UTF_8))) {
+                          send(out, 403, "text/html; charset=utf-8",
+                                  "<h2>ลิงก์ไม่ถูกต้อง — สแกน QR บนเครื่อง R4 ใหม่</h2>".getBytes(StandardCharsets.UTF_8));
+                          return;
+                      }
+
+                      if ("GET".equals(method) && "/".equals(path)) {
+                          send(out, 200, "text/html; charset=utf-8", page);
+                      } else if ("GET".equals(method) && "/api/status".equals(path)) {
+                          sendJson(out, status());
+                      } else if ("GET".equals(method) && "/api/art".equals(path)) {
+                          byte[] art = albumArt();
+                          if (art == null) send(out, 404, "text/plain", new byte[0]);
+                          else send(out, 200, "image/jpeg", art);
+                      } else if ("POST".equals(method) && path.startsWith("/api/")) {
+                          if (doAction(path.substring(5))) sendJson(out, status());
+                          else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
+                      } else {
+                          send(out, 404, "text/plain", new byte[0]);
+                      }
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              private static void send(OutputStream out, int code, String type, byte[] body) throws IOException {
+                  String reason = code == 200 ? "OK" : code == 403 ? "Forbidden" : "Not Found";
+                  String head = "HTTP/1.1 " + code + " " + reason + "\r\n"
+                          + "Content-Type: " + type + "\r\n"
+                          + "Content-Length: " + body.length + "\r\n"
+                          + "Cache-Control: no-store\r\n"
+                          + "Connection: close\r\n\r\n";
+                  out.write(head.getBytes(StandardCharsets.US_ASCII));
+                  out.write(body);
+                  out.flush();
+              }
+
+              private static void sendJson(OutputStream out, String json) throws IOException {
+                  send(out, 200, "application/json; charset=utf-8", json.getBytes(StandardCharsets.UTF_8));
+              }
+
+              // ------------------------------------------------------------------ Media
+
+              /** แอปที่กำลังเล่นอยู่ ถ้าไม่มีให้ใช้แอปที่เล่นล่าสุด */
+              private MediaController controller() {
+                  try {
+                      MediaSessionManager m = getSystemService(MediaSessionManager.class);
+                      List<MediaController> list =
+                              m.getActiveSessions(new ComponentName(this, MediaListener.class));
+                      mediaAccess = true;
+                      if (list == null || list.isEmpty()) return null;
+                      for (MediaController c : list) {
+                          PlaybackState st = c.getPlaybackState();
+                          if (st != null && st.getState() == PlaybackState.STATE_PLAYING) return c;
+                      }
+                      return list.get(0);
+                  } catch (SecurityException e) {
+                      mediaAccess = false;
+                      return null;
+                  }
+              }
+
+              private boolean doAction(String action) {
+                  AudioManager am = getSystemService(AudioManager.class);
+                  switch (action) {
+                      case "volup":
+                          am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_RAISE, 0);
+                          return true;
+                      case "voldown":
+                          am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_LOWER, 0);
+                          return true;
+                      case "mute":
+                          am.adjustStreamVolume(AudioManager.STREAM_MUSIC, AudioManager.ADJUST_TOGGLE_MUTE, 0);
+                          return true;
+                      case "playpause":
+                      case "next":
+                      case "prev":
+                          break;
+                      default:
+                          return false;
+                  }
+
+                  MediaController c = controller();
+                  if (c == null) {
+                      // ยังไม่ได้สิทธิ์ หรือยังไม่มีแอปเล่น: ส่งปุ่มมีเดียให้ระบบแทน
+                      int key = action.equals("next") ? KeyEvent.KEYCODE_MEDIA_NEXT
+                              : action.equals("prev") ? KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                              : KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE;
+                      long now = SystemClock.uptimeMillis();
+                      am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_DOWN, key, 0));
+                      am.dispatchMediaKeyEvent(new KeyEvent(now, now, KeyEvent.ACTION_UP, key, 0));
+                  } else {
+                      MediaController.TransportControls t = c.getTransportControls();
+                      if (action.equals("next")) {
+                          t.skipToNext();
+                      } else if (action.equals("prev")) {
+                          t.skipToPrevious();
+                      } else {
+                          PlaybackState st = c.getPlaybackState();
+                          if (st != null && st.getState() == PlaybackState.STATE_PLAYING) t.pause();
+                          else t.play();
+                      }
+                  }
+                  SystemClock.sleep(350); // รอให้แอปเปลี่ยนเพลง/สถานะก่อนตอบกลับ
+                  return true;
+              }
+
+              private String status() {
+                  JSONObject o = new JSONObject();
+                  try {
+                      AudioManager am = getSystemService(AudioManager.class);
+                      int max = am.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                      int cur = am.getStreamVolume(AudioManager.STREAM_MUSIC);
+                      o.put("volume", max > 0 ? Math.round(cur * 100f / max) : 0);
+                      o.put("muted", am.isStreamMute(AudioManager.STREAM_MUSIC));
+
+                      MediaController c = controller();
+                      o.put("perm", mediaAccess);
+                      if (c == null) {
+                          o.put("state", "stopped");
+                          o.put("title", "");
+                          o.put("artist", "");
+                          o.put("player", "");
+                          o.put("art", "");
+                      } else {
+                          PlaybackState st = c.getPlaybackState();
+                          boolean playing = st != null && st.getState() == PlaybackState.STATE_PLAYING;
+                          o.put("state", playing ? "playing" : "paused");
+                          MediaMetadata md = c.getMetadata();
+                          String title = "", artist = "";
+                          if (md != null) {
+                              title = nz(md.getString(MediaMetadata.METADATA_KEY_TITLE));
+                              artist = nz(md.getString(MediaMetadata.METADATA_KEY_ARTIST));
+                              if (artist.isEmpty()) artist = nz(md.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST));
+                          }
+                          o.put("title", title);
+                          o.put("artist", artist);
+                          o.put("player", appLabel(c.getPackageName()));
+                          o.put("art", artBitmap(md) == null ? ""
+                                  : Integer.toHexString((c.getPackageName() + title + artist).hashCode()));
+                      }
+                  } catch (Exception ignored) {
+                  }
+                  return o.toString();
+              }
+
+              private byte[] albumArt() {
+                  MediaController c = controller();
+                  Bitmap b = c == null ? null : artBitmap(c.getMetadata());
+                  if (b == null) return null;
+                  if (b.getWidth() > 600) {
+                      b = Bitmap.createScaledBitmap(b, 600, Math.max(1, 600 * b.getHeight() / b.getWidth()), true);
+                  }
+                  ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                  b.compress(Bitmap.CompressFormat.JPEG, 85, bo);
+                  return bo.toByteArray();
+              }
+
+              private static Bitmap artBitmap(MediaMetadata md) {
+                  if (md == null) return null;
+                  Bitmap b = md.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+                  if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_ART);
+                  if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+                  return b;
+              }
+
+              private String appLabel(String pkg) {
+                  try {
+                      PackageManager pm = getPackageManager();
+                      return pm.getApplicationLabel(pm.getApplicationInfo(pkg, 0)).toString();
+                  } catch (PackageManager.NameNotFoundException e) {
+                      return pkg;
+                  }
+              }
+
+              private static String nz(String s) {
+                  return s == null ? "" : s;
+              }
+
+              // ------------------------------------------------------------------ misc
+
+              private Notification buildNotification() {
+                  NotificationManager nm = getSystemService(NotificationManager.class);
+                  nm.createNotificationChannel(new NotificationChannel(
+                          CHANNEL, "รีโมทเพลง", NotificationManager.IMPORTANCE_LOW));
+                  PendingIntent pi = PendingIntent.getActivity(this, 0,
+                          new Intent(this, MainActivity.class), PendingIntent.FLAG_IMMUTABLE);
+                  String url = Util.url(this);
+                  return new Notification.Builder(this, CHANNEL)
+                          .setSmallIcon(android.R.drawable.ic_media_play)
+                          .setContentTitle("รีโมทเพลงกำลังทำงาน")
+                          .setContentText(url == null ? "ยังไม่ได้ต่อ Wi-Fi" : url)
+                          .setContentIntent(pi)
+                          .setOngoing(true)
+                          .build();
+              }
+
+              private byte[] readAsset(String name) {
+                  try (InputStream is = getAssets().open(name)) {
+                      ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                      byte[] buf = new byte[8192];
+                      int n;
+                      while ((n = is.read(buf)) > 0) bo.write(buf, 0, n);
+                      return bo.toByteArray();
+                  } catch (IOException e) {
+                      return "<h2>missing page</h2>".getBytes(StandardCharsets.UTF_8);
+                  }
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/MainActivity.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.graphics.Bitmap;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.os.PowerManager;
+          import android.provider.Settings;
+          import android.view.Gravity;
+          import android.view.ViewGroup;
+          import android.widget.Button;
+          import android.widget.ImageView;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+
+          import com.google.zxing.BarcodeFormat;
+          import com.google.zxing.common.BitMatrix;
+          import com.google.zxing.qrcode.QRCodeWriter;
+
+          public class MainActivity extends Activity {
+              private static final int BG = Color.parseColor("#0f1115");
+              private static final int FG = Color.parseColor("#f2f3f5");
+              private static final int MUTED = Color.parseColor("#8b919c");
+              private static final int ACCENT = Color.parseColor("#1ed760");
+
+              private TextView statusText, urlText, hintText;
+              private ImageView qr;
+              private Button accessBtn, batteryBtn, toggleBtn;
+              private final Handler handler = new Handler(Looper.getMainLooper());
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().setStatusBarColor(BG);
+                  int pad = dp(20);
+
+                  LinearLayout col = new LinearLayout(this);
+                  col.setOrientation(LinearLayout.VERTICAL);
+                  col.setGravity(Gravity.CENTER_HORIZONTAL);
+                  col.setPadding(pad, pad, pad, pad);
+                  col.setBackgroundColor(BG);
+
+                  TextView title = text("รีโมทเพลง R4", 24, FG);
+                  title.setTypeface(Typeface.DEFAULT_BOLD);
+                  col.addView(title);
+
+                  statusText = text("", 15, MUTED);
+                  statusText.setPadding(0, dp(6), 0, dp(14));
+                  col.addView(statusText);
+
+                  accessBtn = button(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+                  col.addView(accessBtn);
+
+                  batteryBtn = button(v -> {
+                      Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                              Uri.parse("package:" + getPackageName()));
+                      try {
+                          startActivity(i);
+                      } catch (Exception e) {
+                          startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                      }
+                  });
+                  col.addView(batteryBtn);
+
+                  toggleBtn = button(v -> {
+                      boolean run = !Util.wantRunning(this);
+                      Util.setWantRunning(this, run);
+                      if (run) Util.startService(this);
+                      else Util.stopService(this);
+                      refresh();
+                  });
+                  col.addView(toggleBtn);
+
+                  qr = new ImageView(this);
+                  LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(dp(240), dp(240));
+                  qp.topMargin = dp(20);
+                  col.addView(qr, qp);
+
+                  urlText = text("", 15, FG);
+                  urlText.setTextIsSelectable(true);
+                  urlText.setPadding(0, dp(10), 0, 0);
+                  col.addView(urlText);
+
+                  hintText = text("", 13, MUTED);
+                  hintText.setPadding(0, dp(10), 0, 0);
+                  col.addView(hintText);
+
+                  ScrollView sv = new ScrollView(this);
+                  sv.setBackgroundColor(BG);
+                  sv.setFillViewport(true);
+                  sv.addView(col);
+                  setContentView(sv);
+
+                  if (Build.VERSION.SDK_INT >= 33) {
+                      requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
+                  }
+              }
+
+              @Override
+              protected void onResume() {
+                  super.onResume();
+                  refresh();
+                  // ถ้าเคยเปิดไว้แต่ service ถูกระบบปิด ให้เปิดใหม่
+                  if (Util.wantRunning(this)) Util.startService(this);
+              }
+
+              private void refresh() {
+                  handler.removeCallbacksAndMessages(null);
+                  boolean access = Util.hasMediaAccess(this);
+                  boolean battery = getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(getPackageName());
+                  boolean running = Util.wantRunning(this);
+
+                  accessBtn.setText(access ? "✓ อนุญาตเข้าถึงการแจ้งเตือนแล้ว" : "1. อนุญาตเข้าถึงการแจ้งเตือน (จำเป็น)");
+                  accessBtn.setTextColor(access ? ACCENT : FG);
+                  batteryBtn.setText(battery ? "✓ ไม่จำกัดแบตเตอรี่แล้ว" : "2. ปิดการจำกัดแบตเตอรี่ (แนะนำ)");
+                  batteryBtn.setTextColor(battery ? ACCENT : FG);
+                  toggleBtn.setText(running ? "หยุดรีโมท" : "3. เริ่มรีโมท");
+
+                  String url = Util.url(this);
+                  if (!running) {
+                      statusText.setText("หยุดอยู่");
+                      qr.setImageBitmap(null);
+                      urlText.setText("");
+                      hintText.setText("ทำตามขั้นที่ 1–3 แล้วสแกน QR ด้วยกล้อง iPhone");
+                  } else if (url == null) {
+                      statusText.setText("ยังไม่ได้ต่อ Wi-Fi");
+                      qr.setImageBitmap(null);
+                      urlText.setText("");
+                      hintText.setText("ต่อ Wi-Fi วงเดียวกับ iPhone");
+                      handler.postDelayed(this::refresh, 3000);
+                  } else {
+                      statusText.setText("กำลังทำงาน");
+                      qr.setImageBitmap(qrBitmap(url));
+                      urlText.setText(url);
+                      hintText.setText("สแกน QR ด้วยกล้อง iPhone แล้วเปิดใน Safari\n"
+                              + "จากนั้นกดแชร์ → เพิ่มไปยังหน้าจอโฮม\n"
+                              + "ปิดหน้าจอ R4 ได้ รีโมทยังทำงานอยู่");
+                  }
+              }
+
+              private static Bitmap qrBitmap(String s) {
+                  try {
+                      int size = 480;
+                      BitMatrix m = new QRCodeWriter().encode(s, BarcodeFormat.QR_CODE, size, size);
+                      int[] px = new int[size * size];
+                      for (int y = 0; y < size; y++)
+                          for (int x = 0; x < size; x++)
+                              px[y * size + x] = m.get(x, y) ? Color.BLACK : Color.WHITE;
+                      return Bitmap.createBitmap(px, size, size, Bitmap.Config.RGB_565);
+                  } catch (Exception e) {
+                      return null;
+                  }
+              }
+
+              private TextView text(String s, int sp, int color) {
+                  TextView t = new TextView(this);
+                  t.setText(s);
+                  t.setTextSize(sp);
+                  t.setTextColor(color);
+                  t.setGravity(Gravity.CENTER);
+                  return t;
+              }
+
+              private Button button(android.view.View.OnClickListener l) {
+                  Button b = new Button(this);
+                  b.setAllCaps(false);
+                  b.setOnClickListener(l);
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                  lp.topMargin = dp(8);
+                  b.setLayoutParams(lp);
+                  return b;
+              }
+
+              private int dp(int v) {
+                  return Math.round(v * getResources().getDisplayMetrics().density);
+              }
+          }
+          R4EOF
+
+      - name: Build APK
+        working-directory: src
+        run: |
+          gradle assembleDebug --no-daemon
+          cp app/build/outputs/apk/debug/app-debug.apk ../R4Remote.apk
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: R4Remote-apk
+          path: R4Remote.apk
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: R4Remote
+          files: R4Remote.apk
+          make_latest: true
