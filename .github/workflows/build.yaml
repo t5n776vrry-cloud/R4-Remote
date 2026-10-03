@@ -1,4 +1,4 @@
-# รีโมทเพลง R4 — ไฟล์เดียวจบ
+# รีโมทเพลง R4 v1.1 — ไฟล์เดียวจบ
 # วางไฟล์นี้ไว้ที่ .github/workflows/build.yml ใน GitHub repo
 # GitHub จะสร้างโปรเจกต์และไฟล์ R4Remote.apk ให้เอง (ดูที่หน้า Releases)
 name: Build R4Remote APK
@@ -26,7 +26,8 @@ jobs:
       - name: Create project files
         run: |
           set -e
-          mkdir -p src && cd src
+          mkdir -p src/app && cd src
+          echo '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' | base64 -d > app/r4.jks
           cat > settings.gradle <<'R4EOF'
           pluginManagement {
               repositories {
@@ -68,8 +69,18 @@ jobs:
                   applicationId 'com.r4remote'
                   minSdk 26
                   targetSdk 33
-                  versionCode 1
-                  versionName '1.0'
+                  versionCode 2
+                  versionName '1.1'
+              }
+
+              // ใช้กุญแจเซ็นแอปตัวเดิมทุกครั้ง เพื่อให้ติดตั้งเวอร์ชันใหม่ทับได้โดยไม่ต้องลบแอปเก่า
+              signingConfigs {
+                  debug {
+                      storeFile file('r4.jks')
+                      storePassword 'r4remote'
+                      keyAlias 'r4'
+                      keyPassword 'r4remote'
+                  }
               }
 
               compileOptions {
@@ -152,72 +163,126 @@ jobs:
           <meta name="theme-color" content="#0f1115">
           <title>รีโมท R4</title>
           <style>
-          :root{--bg:#0f1115;--card:#1a1d24;--fg:#f2f3f5;--mut:#8b919c;--acc:#1ed760}
+          :root{--bg:#0f1115;--card:#1a1d24;--card2:#22262f;--fg:#f2f3f5;--mut:#8b919c;--acc:#1ed760}
           *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
           html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);
            font-family:-apple-system,BlinkMacSystemFont,"Sukhumvit Set",sans-serif;user-select:none;-webkit-user-select:none}
-          main{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:28px;max-width:440px;margin:0 auto;
+          main{min-height:100%;display:flex;flex-direction:column;justify-content:center;gap:26px;max-width:440px;margin:0 auto;
            padding:calc(env(safe-area-inset-top) + 20px) 24px calc(env(safe-area-inset-bottom) + 20px)}
           .art{width:min(72vw,300px);aspect-ratio:1;margin:0 auto;border-radius:18px;background:var(--card);
            display:grid;place-items:center;overflow:hidden;box-shadow:0 12px 40px rgba(0,0,0,.45)}
           .art img{width:100%;height:100%;object-fit:cover;display:none}
           .art svg{width:64px;height:64px;fill:#333844}
           .np{text-align:center}
-          .player{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--acc);min-height:15px}
-          .title{font-size:22px;font-weight:700;margin:8px 0 4px;min-height:28px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .app{display:inline-flex;align-items:center;gap:8px;border:0;background:var(--card);color:var(--acc);
+           border-radius:999px;padding:7px 14px 7px 8px;font:600 13px -apple-system,sans-serif;letter-spacing:.04em;
+           width:auto;height:auto;max-width:100%}
+          .app:active{background:var(--card2);transform:scale(.96)}
+          .app img{width:22px;height:22px;border-radius:6px;display:none}
+          .app .chev{width:14px;height:14px;fill:var(--mut)}
+          .title{font-size:22px;font-weight:700;margin:12px 0 4px;min-height:28px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           .artist{font-size:15px;color:var(--mut);min-height:19px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
           .row{display:flex;justify-content:center;align-items:center;gap:28px}
-          button{border:0;background:var(--card);color:var(--fg);border-radius:50%;display:grid;place-items:center;
+          button.c{border:0;background:var(--card);color:var(--fg);border-radius:50%;display:grid;place-items:center;
            width:72px;height:72px;transition:transform .08s,background .15s}
-          button:active{transform:scale(.9);background:#262a33}
+          button.c:active{transform:scale(.9);background:#262a33}
           button.big{width:92px;height:92px;background:var(--fg);color:var(--bg)}
           button.big:active{background:#cfd2d8}
           button.sm{width:56px;height:56px}
-          svg{width:30px;height:30px;fill:currentColor}
+          .c svg{width:30px;height:30px;fill:currentColor}
           .big svg{width:40px;height:40px}
           .sm svg{width:24px;height:24px}
           .vol{font-size:14px;color:var(--mut);min-width:64px;text-align:center}
           .status{text-align:center;font-size:13px;color:var(--mut);min-height:16px}
           .status.err{color:#ff6b6b}
+
+          /* แผ่นเลือกแอป */
+          .sheet{position:fixed;inset:0;display:none;z-index:10}
+          .sheet.open{display:block}
+          .backdrop{position:absolute;inset:0;background:rgba(0,0,0,.55);animation:fade .2s}
+          .panel{position:absolute;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;background:var(--card);
+           border-radius:20px 20px 0 0;max-height:75vh;display:flex;flex-direction:column;
+           padding-bottom:env(safe-area-inset-bottom);animation:up .22s ease-out}
+          .handle{width:40px;height:5px;border-radius:3px;background:#3a3f4a;margin:10px auto 4px}
+          .panel h3{margin:6px 20px 10px;font-size:17px}
+          .list{overflow-y:auto;padding:0 10px 14px}
+          .item{display:flex;align-items:center;gap:12px;padding:10px;border-radius:14px}
+          .item:active{background:var(--card2)}
+          .item.sel{background:var(--card2)}
+          .item img{width:44px;height:44px;border-radius:11px;background:#2a2e38;flex:none}
+          .item .t{flex:1;min-width:0}
+          .item .n{font-size:16px;font-weight:600}
+          .item .s{font-size:13px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .item .s.on{color:var(--acc)}
+          .item .ck{width:22px;height:22px;fill:var(--acc);visibility:hidden;flex:none}
+          .item.sel .ck{visibility:visible}
+          .item.busy{opacity:.5}
+          .empty{color:var(--mut);text-align:center;padding:24px;font-size:14px}
+          @keyframes up{from{transform:translateY(100%)}to{transform:none}}
+          @keyframes fade{from{opacity:0}to{opacity:1}}
           </style></head><body>
           <main>
            <div class="art"><img id="art" alt=""><svg id="noart" viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></div>
            <div class="np">
-            <div class="player" id="player"></div>
+            <button class="app" id="appbtn" aria-label="เลือกแอป">
+             <img id="appicon" alt="">
+             <span id="player">เลือกแอป</span>
+             <svg class="chev" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5z"/></svg>
+            </button>
             <div class="title" id="title">กำลังเชื่อมต่อ…</div>
             <div class="artist" id="artist"></div>
            </div>
            <div class="row">
-            <button data-a="prev" aria-label="เพลงก่อนหน้า"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
-            <button class="big" data-a="playpause" aria-label="เล่น/หยุด"><svg id="pp" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
-            <button data-a="next" aria-label="เพลงถัดไป"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zM16 6h2v12h-2z"/></svg></button>
+            <button class="c" data-a="prev" aria-label="เพลงก่อนหน้า"><svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6 8.5 6V6z"/></svg></button>
+            <button class="c big" data-a="playpause" aria-label="เล่น/หยุด"><svg id="pp" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>
+            <button class="c" data-a="next" aria-label="เพลงถัดไป"><svg viewBox="0 0 24 24"><path d="M6 18l8.5-6L6 6zM16 6h2v12h-2z"/></svg></button>
            </div>
            <div class="row">
-            <button class="sm" data-a="voldown" aria-label="ลดเสียง"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14z"/></svg></button>
+            <button class="c sm" data-a="voldown" aria-label="ลดเสียง"><svg viewBox="0 0 24 24"><path d="M19 13H5v-2h14z"/></svg></button>
             <div class="vol" id="vol">–</div>
-            <button class="sm" data-a="volup" aria-label="เพิ่มเสียง"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>
-            <button class="sm" data-a="mute" aria-label="ปิดเสียง"><svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.42.05-.65zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9zM12 4 9.91 6.09 12 8.18z"/></svg></button>
+            <button class="c sm" data-a="volup" aria-label="เพิ่มเสียง"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>
+            <button class="c sm" data-a="mute" aria-label="ปิดเสียง"><svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.42.05-.65zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9zM12 4 9.91 6.09 12 8.18z"/></svg></button>
            </div>
            <div class="status" id="st"></div>
           </main>
+
+          <div class="sheet" id="sheet">
+           <div class="backdrop" id="backdrop"></div>
+           <div class="panel">
+            <div class="handle"></div>
+            <h3>เลือกแอปที่จะเล่นบน R4</h3>
+            <div class="list" id="list"><div class="empty">กำลังโหลด…</div></div>
+           </div>
+          </div>
+
           <script>
           const K = new URLSearchParams(location.search).get("k") || "";
+          const Q = "?k=" + encodeURIComponent(K);
           const $ = id => document.getElementById(id);
           const PLAY = '<path d="M8 5v14l11-7z"/>', PAUSE = '<path d="M6 5h4v14H6zm8 0h4v14h-4z"/>';
-          let artKey = null;
+          const CHECK = '<svg class="ck" viewBox="0 0 24 24"><path d="M9 16.2 4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg>';
+          let artKey = null, iconPkg = null;
 
           $("art").onload = () => { $("art").style.display = "block"; $("noart").style.display = "none"; };
           $("art").onerror = () => { $("art").style.display = "none"; $("noart").style.display = "block"; };
+          $("appicon").onload = () => { $("appicon").style.display = "block"; };
+          $("appicon").onerror = () => { $("appicon").style.display = "none"; };
+
+          const iconUrl = p => "/api/icon" + Q + "&pkg=" + encodeURIComponent(p);
 
           function show(d){
-            $("player").textContent = d.player || "";
-            $("title").textContent = d.title || (d.state === "stopped" ? "ไม่มีเพลงกำลังเล่น" : "");
+            $("player").textContent = d.player || "เลือกแอป";
+            if (d.pkg !== iconPkg) {
+              iconPkg = d.pkg;
+              if (d.pkg) $("appicon").src = iconUrl(d.pkg); else $("appicon").style.display = "none";
+            }
+            $("title").textContent = d.title || (d.state === "stopped" ? (d.player ? "แตะ ▶ เพื่อเริ่มเล่น" : "ไม่มีเพลงกำลังเล่น") : "");
             $("artist").textContent = d.artist || "";
             $("pp").innerHTML = d.state === "playing" ? PAUSE : PLAY;
             $("vol").textContent = d.muted ? "ปิดเสียง" : "เสียง " + d.volume + "%";
             if (d.art !== artKey) {
               artKey = d.art;
-              if (d.art) $("art").src = "/api/art?k=" + encodeURIComponent(K) + "&v=" + d.art;
+              if (d.art) $("art").src = "/api/art" + Q + "&v=" + d.art;
               else { $("art").removeAttribute("src"); $("art").style.display = "none"; $("noart").style.display = "block"; }
             }
             if (d.perm === false) {
@@ -227,18 +292,55 @@ jobs:
           }
           function fail(){ $("st").textContent = "เชื่อมต่อ R4 ไม่ได้ — ตรวจว่าเปิดรีโมทอยู่และต่อ Wi-Fi เดียวกัน"; $("st").className = "status err"; }
 
-          async function call(path, opts){
+          async function call(path, opts, extra){
             try{
-              const r = await fetch(path + "?k=" + encodeURIComponent(K), opts);
+              const r = await fetch(path + Q + (extra || ""), opts);
               if(!r.ok) throw 0;
               show(await r.json());
-            }catch(e){ fail(); }
+              return true;
+            }catch(e){ fail(); return false; }
           }
           document.querySelectorAll("button[data-a]").forEach(b =>
             b.addEventListener("click", () => call("/api/" + b.dataset.a, {method:"POST"})));
 
+          /* ---------- เลือกแอป ---------- */
+          function esc(s){ return String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
+
+          async function openSheet(){
+            $("sheet").classList.add("open");
+            $("list").innerHTML = '<div class="empty">กำลังโหลด…</div>';
+            try{
+              const r = await fetch("/api/apps" + Q);
+              if(!r.ok) throw 0;
+              const apps = await r.json();
+              if (!apps.length) { $("list").innerHTML = '<div class="empty">ไม่พบแอปเพลงบน R4</div>'; return; }
+              $("list").innerHTML = apps.map(a => {
+                const sub = a.state === "playing" ? "กำลังเล่น" + (a.title ? " · " + a.title : "")
+                          : a.state === "paused" ? "หยุดชั่วคราว" + (a.title ? " · " + a.title : "")
+                          : "แตะเพื่อเปิดและเล่น";
+                return '<div class="item' + (a.selected ? " sel" : "") + '" data-pkg="' + esc(a.pkg) + '">'
+                  + '<img src="' + iconUrl(a.pkg) + '" alt="">'
+                  + '<div class="t"><div class="n">' + esc(a.label) + '</div>'
+                  + '<div class="s' + (a.state === "playing" ? " on" : "") + '">' + esc(sub) + '</div></div>'
+                  + CHECK + '</div>';
+              }).join("");
+            }catch(e){ $("list").innerHTML = '<div class="empty">โหลดรายการแอปไม่ได้</div>'; }
+          }
+          function closeSheet(){ $("sheet").classList.remove("open"); }
+
+          $("appbtn").addEventListener("click", openSheet);
+          $("backdrop").addEventListener("click", closeSheet);
+          $("list").addEventListener("click", async e => {
+            const item = e.target.closest(".item");
+            if (!item) return;
+            item.classList.add("busy");
+            item.querySelector(".s").textContent = "กำลังสลับ…";
+            await call("/api/select", {method:"POST"}, "&pkg=" + encodeURIComponent(item.dataset.pkg));
+            closeSheet();
+          });
+
           call("/api/status");
-          setInterval(() => { if(!document.hidden) call("/api/status"); }, 2500);
+          setInterval(() => { if(!document.hidden && !$("sheet").classList.contains("open")) call("/api/status"); }, 2500);
           document.addEventListener("visibilitychange", () => { if(!document.hidden) call("/api/status"); });
           </script>
           </body></html>
@@ -370,19 +472,27 @@ jobs:
           import android.content.ComponentName;
           import android.content.Intent;
           import android.content.pm.PackageManager;
+          import android.content.pm.ResolveInfo;
           import android.graphics.Bitmap;
+          import android.graphics.Canvas;
+          import android.graphics.drawable.Drawable;
           import android.media.AudioManager;
           import android.media.MediaMetadata;
+          import android.media.browse.MediaBrowser;
           import android.media.session.MediaController;
           import android.media.session.MediaSessionManager;
           import android.media.session.PlaybackState;
           import android.net.Uri;
           import android.net.wifi.WifiManager;
+          import android.os.Handler;
           import android.os.IBinder;
+          import android.os.Looper;
           import android.os.PowerManager;
           import android.os.SystemClock;
           import android.view.KeyEvent;
 
+          import org.json.JSONArray;
+          import org.json.JSONException;
           import org.json.JSONObject;
 
           import java.io.BufferedReader;
@@ -396,13 +506,20 @@ jobs:
           import java.net.Socket;
           import java.nio.charset.StandardCharsets;
           import java.security.MessageDigest;
+          import java.util.ArrayList;
+          import java.util.Comparator;
+          import java.util.HashMap;
+          import java.util.HashSet;
           import java.util.List;
+          import java.util.Map;
+          import java.util.Set;
+          import java.util.concurrent.ConcurrentHashMap;
           import java.util.concurrent.ExecutorService;
           import java.util.concurrent.Executors;
 
           /**
            * เซิร์ฟเวอร์ HTTP เล็กๆ บน R4 ให้ iPhone เปิดหน้าควบคุมผ่าน Safari
-           * ควบคุมได้ทุกแอปที่มี MediaSession (HiBy Music, Spotify, TIDAL, YouTube Music, Apple Music ฯลฯ)
+           * ควบคุมได้ทุกแอปที่มี MediaSession และสลับแอปที่เล่นได้
            */
           public class RemoteService extends Service {
               private static final String CHANNEL = "remote";
@@ -414,6 +531,9 @@ jobs:
               private String token;
               private byte[] page;
               private volatile boolean mediaAccess = true;
+              private volatile String selectedPkg;
+              private final Handler main = new Handler(Looper.getMainLooper());
+              private final Map<String, byte[]> iconCache = new ConcurrentHashMap<>();
 
               @Override
               public void onCreate() {
@@ -502,10 +622,19 @@ jobs:
                           send(out, 200, "text/html; charset=utf-8", page);
                       } else if ("GET".equals(method) && "/api/status".equals(path)) {
                           sendJson(out, status());
+                      } else if ("GET".equals(method) && "/api/apps".equals(path)) {
+                          sendJson(out, apps());
                       } else if ("GET".equals(method) && "/api/art".equals(path)) {
                           byte[] art = albumArt();
                           if (art == null) send(out, 404, "text/plain", new byte[0]);
                           else send(out, 200, "image/jpeg", art);
+                      } else if ("GET".equals(method) && "/api/icon".equals(path)) {
+                          byte[] icon = icon(uri.getQueryParameter("pkg"));
+                          if (icon == null) send(out, 404, "text/plain", new byte[0]);
+                          else send(out, 200, "image/png", icon);
+                      } else if ("POST".equals(method) && "/api/select".equals(path)) {
+                          if (select(uri.getQueryParameter("pkg"))) sendJson(out, status());
+                          else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
                       } else if ("POST".equals(method) && path.startsWith("/api/")) {
                           if (doAction(path.substring(5))) sendJson(out, status());
                           else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
@@ -532,26 +661,157 @@ jobs:
                   send(out, 200, "application/json; charset=utf-8", json.getBytes(StandardCharsets.UTF_8));
               }
 
-              // ------------------------------------------------------------------ Media
+              // ------------------------------------------------------------------ Media sessions
 
-              /** แอปที่กำลังเล่นอยู่ ถ้าไม่มีให้ใช้แอปที่เล่นล่าสุด */
-              private MediaController controller() {
+              private List<MediaController> sessions() {
                   try {
                       MediaSessionManager m = getSystemService(MediaSessionManager.class);
                       List<MediaController> list =
                               m.getActiveSessions(new ComponentName(this, MediaListener.class));
                       mediaAccess = true;
-                      if (list == null || list.isEmpty()) return null;
-                      for (MediaController c : list) {
-                          PlaybackState st = c.getPlaybackState();
-                          if (st != null && st.getState() == PlaybackState.STATE_PLAYING) return c;
-                      }
-                      return list.get(0);
+                      return list == null ? new ArrayList<>() : list;
                   } catch (SecurityException e) {
                       mediaAccess = false;
-                      return null;
+                      return new ArrayList<>();
                   }
               }
+
+              private static boolean isPlaying(MediaController c) {
+                  PlaybackState st = c.getPlaybackState();
+                  return st != null && st.getState() == PlaybackState.STATE_PLAYING;
+              }
+
+              /**
+               * แอปที่ควบคุมอยู่: แอปที่เลือกจาก iPhone
+               * แต่ถ้ามีแอปอื่นกำลังเล่น (เช่น กดเล่นบน R4 เอง) จะตามแอปนั้นไป
+               */
+              private MediaController controller() {
+                  List<MediaController> list = sessions();
+                  MediaController playing = null, selected = null;
+                  for (MediaController c : list) {
+                      if (playing == null && isPlaying(c)) playing = c;
+                      if (selected == null && c.getPackageName().equals(selectedPkg)) selected = c;
+                  }
+                  if (selected != null && (isPlaying(selected) || playing == null)) return selected;
+                  if (playing != null) {
+                      selectedPkg = playing.getPackageName();
+                      return playing;
+                  }
+                  if (selectedPkg != null) return null; // แอปที่เลือกยังไม่เริ่มเล่น
+                  return list.isEmpty() ? null : list.get(0);
+              }
+
+              /** แอปเพลงที่ติดตั้งอยู่และสั่งเล่นจากภายนอกได้ (pkg → ชื่อคลาส MediaBrowserService) */
+              private Map<String, String> browserServices() {
+                  Map<String, String> m = new HashMap<>();
+                  List<ResolveInfo> list = getPackageManager().queryIntentServices(
+                          new Intent("android.media.browse.MediaBrowserService"), 0);
+                  for (ResolveInfo ri : list) {
+                      if (ri.serviceInfo == null || getPackageName().equals(ri.serviceInfo.packageName)) continue;
+                      m.putIfAbsent(ri.serviceInfo.packageName, ri.serviceInfo.name);
+                  }
+                  return m;
+              }
+
+              private String apps() {
+                  JSONArray arr = new JSONArray();
+                  try {
+                      MediaController cur = controller();
+                      String curPkg = cur != null ? cur.getPackageName() : selectedPkg;
+                      Set<String> seen = new HashSet<>();
+                      for (MediaController c : sessions()) {
+                          String p = c.getPackageName();
+                          if (!seen.add(p)) continue;
+                          arr.put(appJson(p, isPlaying(c) ? "playing" : "paused", title(c), p.equals(curPkg)));
+                      }
+                      List<String> rest = new ArrayList<>();
+                      for (String p : browserServices().keySet()) if (!seen.contains(p)) rest.add(p);
+                      rest.sort(Comparator.comparing(this::appLabel, String.CASE_INSENSITIVE_ORDER));
+                      for (String p : rest) arr.put(appJson(p, "", "", p.equals(curPkg)));
+                  } catch (JSONException ignored) {
+                  }
+                  return arr.toString();
+              }
+
+              private JSONObject appJson(String pkg, String state, String title, boolean selected) throws JSONException {
+                  JSONObject o = new JSONObject();
+                  o.put("pkg", pkg);
+                  o.put("label", appLabel(pkg));
+                  o.put("state", state);
+                  o.put("title", title);
+                  o.put("selected", selected);
+                  return o;
+              }
+
+              /** สลับไปเล่นแอปที่เลือก: หยุดแอปอื่น แล้วสั่งแอปที่เลือกให้เล่น */
+              private boolean select(String pkg) {
+                  if (pkg == null) return false;
+                  List<MediaController> list = sessions();
+                  MediaController target = null;
+                  for (MediaController c : list) if (c.getPackageName().equals(pkg)) target = c;
+                  Map<String, String> services = browserServices();
+                  if (target == null && !services.containsKey(pkg)) return false;
+
+                  for (MediaController c : list) {
+                      if (!c.getPackageName().equals(pkg) && isPlaying(c)) c.getTransportControls().pause();
+                  }
+                  selectedPkg = pkg;
+                  if (target != null) target.getTransportControls().play();
+                  else startApp(pkg, services.get(pkg));
+                  SystemClock.sleep(target != null ? 500 : 1800);
+                  return true;
+              }
+
+              /** เริ่มเล่นแอปที่ยังไม่ได้เปิด ผ่าน MediaBrowser (แบบเดียวกับ Android Auto) */
+              private void startApp(String pkg, String serviceClass) {
+                  if (serviceClass == null) {
+                      sendMediaButton(pkg);
+                      return;
+                  }
+                  main.post(() -> {
+                      final MediaBrowser[] browser = new MediaBrowser[1];
+                      browser[0] = new MediaBrowser(this, new ComponentName(pkg, serviceClass),
+                              new MediaBrowser.ConnectionCallback() {
+                                  @Override
+                                  public void onConnected() {
+                                      try {
+                                          new MediaController(RemoteService.this, browser[0].getSessionToken())
+                                                  .getTransportControls().play();
+                                      } catch (Exception e) {
+                                          sendMediaButton(pkg);
+                                      }
+                                      main.postDelayed(() -> {
+                                          try {
+                                              browser[0].disconnect();
+                                          } catch (Exception ignored) {
+                                          }
+                                      }, 15000);
+                                  }
+
+                                  @Override
+                                  public void onConnectionFailed() {
+                                      sendMediaButton(pkg);
+                                  }
+                              }, null);
+                      try {
+                          browser[0].connect();
+                      } catch (Exception e) {
+                          sendMediaButton(pkg);
+                      }
+                  });
+              }
+
+              /** ส่งปุ่ม "เล่น" ไปที่แอปนั้นโดยตรง (สำรอง) */
+              private void sendMediaButton(String pkg) {
+                  long t = SystemClock.uptimeMillis();
+                  for (int action : new int[]{KeyEvent.ACTION_DOWN, KeyEvent.ACTION_UP}) {
+                      Intent i = new Intent(Intent.ACTION_MEDIA_BUTTON).setPackage(pkg);
+                      i.putExtra(Intent.EXTRA_KEY_EVENT, new KeyEvent(t, t, action, KeyEvent.KEYCODE_MEDIA_PLAY, 0));
+                      sendBroadcast(i);
+                  }
+              }
+
+              // ------------------------------------------------------------------ Controls
 
               private boolean doAction(String action) {
                   AudioManager am = getSystemService(AudioManager.class);
@@ -574,6 +834,12 @@ jobs:
                   }
 
                   MediaController c = controller();
+                  if (c == null && selectedPkg != null && action.equals("playpause")) {
+                      String pkg = selectedPkg;
+                      startApp(pkg, browserServices().get(pkg));
+                      SystemClock.sleep(1800);
+                      return true;
+                  }
                   if (c == null) {
                       // ยังไม่ได้สิทธิ์ หรือยังไม่มีแอปเล่น: ส่งปุ่มมีเดียให้ระบบแทน
                       int key = action.equals("next") ? KeyEvent.KEYCODE_MEDIA_NEXT
@@ -588,10 +854,10 @@ jobs:
                           t.skipToNext();
                       } else if (action.equals("prev")) {
                           t.skipToPrevious();
+                      } else if (isPlaying(c)) {
+                          t.pause();
                       } else {
-                          PlaybackState st = c.getPlaybackState();
-                          if (st != null && st.getState() == PlaybackState.STATE_PLAYING) t.pause();
-                          else t.play();
+                          t.play();
                       }
                   }
                   SystemClock.sleep(350); // รอให้แอปเปลี่ยนเพลง/สถานะก่อนตอบกลับ
@@ -610,24 +876,24 @@ jobs:
                       MediaController c = controller();
                       o.put("perm", mediaAccess);
                       if (c == null) {
+                          String sel = selectedPkg;
                           o.put("state", "stopped");
                           o.put("title", "");
                           o.put("artist", "");
-                          o.put("player", "");
+                          o.put("pkg", sel == null ? "" : sel);
+                          o.put("player", sel == null ? "" : appLabel(sel));
                           o.put("art", "");
                       } else {
-                          PlaybackState st = c.getPlaybackState();
-                          boolean playing = st != null && st.getState() == PlaybackState.STATE_PLAYING;
-                          o.put("state", playing ? "playing" : "paused");
+                          o.put("state", isPlaying(c) ? "playing" : "paused");
                           MediaMetadata md = c.getMetadata();
-                          String title = "", artist = "";
+                          String title = title(c), artist = "";
                           if (md != null) {
-                              title = nz(md.getString(MediaMetadata.METADATA_KEY_TITLE));
                               artist = nz(md.getString(MediaMetadata.METADATA_KEY_ARTIST));
                               if (artist.isEmpty()) artist = nz(md.getString(MediaMetadata.METADATA_KEY_ALBUM_ARTIST));
                           }
                           o.put("title", title);
                           o.put("artist", artist);
+                          o.put("pkg", c.getPackageName());
                           o.put("player", appLabel(c.getPackageName()));
                           o.put("art", artBitmap(md) == null ? ""
                                   : Integer.toHexString((c.getPackageName() + title + artist).hashCode()));
@@ -635,6 +901,11 @@ jobs:
                   } catch (Exception ignored) {
                   }
                   return o.toString();
+              }
+
+              private static String title(MediaController c) {
+                  MediaMetadata md = c.getMetadata();
+                  return md == null ? "" : nz(md.getString(MediaMetadata.METADATA_KEY_TITLE));
               }
 
               private byte[] albumArt() {
@@ -655,6 +926,26 @@ jobs:
                   if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_ART);
                   if (b == null) b = md.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
                   return b;
+              }
+
+              private byte[] icon(String pkg) {
+                  if (pkg == null) return null;
+                  byte[] cached = iconCache.get(pkg);
+                  if (cached != null) return cached;
+                  try {
+                      Drawable d = getPackageManager().getApplicationIcon(pkg);
+                      Bitmap b = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888);
+                      Canvas canvas = new Canvas(b);
+                      d.setBounds(0, 0, 96, 96);
+                      d.draw(canvas);
+                      ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                      b.compress(Bitmap.CompressFormat.PNG, 100, bo);
+                      byte[] png = bo.toByteArray();
+                      iconCache.put(pkg, png);
+                      return png;
+                  } catch (Exception e) {
+                      return null;
+                  }
               }
 
               private String appLabel(String pkg) {
