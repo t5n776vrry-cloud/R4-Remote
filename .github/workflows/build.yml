@@ -1,4 +1,4 @@
-# รีโมทเพลง R4 v1.2 — ไฟล์เดียวจบ
+# รีโมทเพลง R4 v1.3 — ไฟล์เดียวจบ
 # วางไฟล์นี้ไว้ที่ .github/workflows/build.yml ใน GitHub repo
 # GitHub จะสร้างโปรเจกต์และไฟล์ R4Remote.apk ให้เอง (ดูที่หน้า Releases)
 name: Build R4Remote APK
@@ -54,6 +54,7 @@ jobs:
           cat > gradle.properties <<'R4EOF'
           org.gradle.jvmargs=-Xmx2048m -Dfile.encoding=UTF-8
           android.nonTransitiveRClass=true
+          android.useAndroidX=true
           R4EOF
           mkdir -p app
           cat > app/build.gradle <<'R4EOF'
@@ -69,8 +70,8 @@ jobs:
                   applicationId 'com.r4remote'
                   minSdk 26
                   targetSdk 33
-                  versionCode 3
-                  versionName '1.2'
+                  versionCode 4
+                  versionName '1.3'
               }
 
               // ใช้กุญแจเซ็นแอปตัวเดิมทุกครั้ง เพื่อให้ติดตั้งเวอร์ชันใหม่ทับได้โดยไม่ต้องลบแอปเก่า
@@ -91,6 +92,7 @@ jobs:
 
           dependencies {
               implementation 'com.google.zxing:core:3.5.3'
+              implementation 'androidx.media:media:1.7.0'
           }
           R4EOF
           mkdir -p app/src/main
@@ -287,8 +289,9 @@ jobs:
             <div class="bar hide" id="navbar"><button class="back" id="back">‹ ย้อนกลับ</button><div class="crumb" id="crumb"></div></div>
             <form class="bar hide" id="sform" autocomplete="off">
              <input class="sbox" id="sq" type="search" enterkeyhint="search" placeholder="ชื่อเพลง ศิลปิน หรืออัลบั้ม">
-             <button class="go" type="submit">▶ เล่น</button>
+             <button class="go" type="submit">ค้นหา</button>
             </form>
+            <button class="quick hide" id="quick">▶ เล่นผลลัพธ์แรกเลย</button>
             <div class="list" id="liblist"></div>
            </div>
           </div>
@@ -426,10 +429,12 @@ jobs:
             $("tabs").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
             $("sform").classList.toggle("hide", t !== "search");
             $("navbar").classList.toggle("hide", t !== "browse" || !stack.length);
+            $("quick").classList.add("hide");
             if (noLoad) return;
             if (t === "queue") loadQueue();
             else if (t === "browse") loadBrowse();
-            else msg("พิมพ์ชื่อเพลง ศิลปิน หรืออัลบั้ม แล้วแตะ “เล่น” — แอปจะหาเพลงที่ตรงที่สุดแล้วเล่นทันที");
+            else if (lastQuery) runSearch(lastQuery);
+            else msg("พิมพ์ชื่อเพลง ศิลปิน หรืออัลบั้ม แล้วแตะค้นหา");
           }
 
           async function loadQueue(){
@@ -455,9 +460,15 @@ jobs:
             }catch(e){ msg("โหลดคลังเพลงไม่ได้"); }
           }
 
-          function runSearch(q){
+          async function runSearch(q){
             lastQuery = q;
-            play("/api/searchplay", "&q=" + encodeURIComponent(q));
+            $("quick").classList.remove("hide");
+            msg("กำลังค้นหา…");
+            try{
+              const d = await getJSON("/api/search", "&q=" + encodeURIComponent(q));
+              if (!d.items.length) return msg(d.msg || "ไม่พบเพลงที่ค้นหา");
+              render(d.items, "media");
+            }catch(e){ msg("ค้นหาไม่ได้"); }
           }
 
           async function play(path, extra){
@@ -478,12 +489,14 @@ jobs:
             $("sq").blur();
             runSearch(q);
           });
+          $("quick").addEventListener("click", () => { if (lastQuery) play("/api/searchplay", "&q=" + encodeURIComponent(lastQuery)); });
           $("liblist").addEventListener("click", e => {
             const item = e.target.closest(".item");
             if (!item) return;
             const id = item.dataset.id;
             if (item.dataset.kind === "queue") return play("/api/queue/play", "&id=" + encodeURIComponent(id));
             if (item.dataset.b === "1" && !e.target.closest(".go2")) {
+              if (tab === "search") { stack = []; setTab("browse", true); }
               stack.push({id, title: item.dataset.title || "…"});
               return loadBrowse();
             }
@@ -701,20 +714,25 @@ jobs:
               }
 
               private JSONObject descJson(MediaDescription d) throws JSONException {
+                  return entryJson(d.getTitle(), d.getSubtitle(), d.getIconUri(), d.getIconBitmap());
+              }
+
+              /** ข้อมูลหนึ่งรายการ (ใช้ร่วมกับผลค้นหาใน Searcher) */
+              JSONObject entryJson(CharSequence title, CharSequence subtitle, Uri iconUri, Bitmap iconBitmap)
+                      throws JSONException {
                   JSONObject o = new JSONObject();
-                  o.put("title", d.getTitle() == null ? "" : d.getTitle().toString());
-                  o.put("subtitle", d.getSubtitle() == null ? "" : d.getSubtitle().toString());
-                  o.put("icon", icon(d));
+                  o.put("title", title == null ? "" : title.toString());
+                  o.put("subtitle", subtitle == null ? "" : subtitle.toString());
+                  o.put("icon", icon(iconUri, iconBitmap));
                   return o;
               }
 
               /** รูปปก: ลิงก์ http ส่งต่อตรงๆ ส่วนรูปในเครื่องจะได้รหัส "#n" ให้หน้าเว็บขอผ่าน /api/img */
-              private String icon(MediaDescription d) {
-                  Uri u = d.getIconUri();
+              private String icon(Uri u, Bitmap bitmap) {
                   if (u != null && ("http".equals(u.getScheme()) || "https".equals(u.getScheme()))) {
                       return u.toString();
                   }
-                  Object src = d.getIconBitmap() != null ? d.getIconBitmap() : u;
+                  Object src = bitmap != null ? bitmap : u;
                   if (src == null) return "";
                   if (images.size() > 600) images.clear();
                   String key = Integer.toString(imageSeq.incrementAndGet());
@@ -1029,11 +1047,13 @@ jobs:
               private final Handler main = new Handler(Looper.getMainLooper());
               private final Map<String, byte[]> iconCache = new ConcurrentHashMap<>();
               private Library lib;
+              private Searcher searcher;
 
               @Override
               public void onCreate() {
                   super.onCreate();
                   lib = new Library(this, main);
+                  searcher = new Searcher(this, main);
                   token = Util.token(this);
                   page = readAsset("index.html");
                   startForeground(1, buildNotification());
@@ -1135,6 +1155,8 @@ jobs:
                           sendJson(out, queue());
                       } else if ("GET".equals(method) && "/api/browse".equals(path)) {
                           sendJson(out, browse(uri.getQueryParameter("id")));
+                      } else if ("GET".equals(method) && "/api/search".equals(path)) {
+                          sendJson(out, search(uri.getQueryParameter("q")));
                       } else if ("GET".equals(method) && "/api/img".equals(path)) {
                           byte[] img = lib.image(uri.getQueryParameter("i"));
                           if (img == null) send(out, 404, "text/plain", new byte[0]);
@@ -1349,6 +1371,26 @@ jobs:
                       return o.toString();
                   } catch (JSONException e) {
                       return error("อ่านรายการไม่ได้");
+                  }
+              }
+
+              private String search(String q) {
+                  String pkg = currentPkg();
+                  if (pkg == null) return error("เลือกแอปก่อน (แตะชื่อแอปบนหน้ารีโมท)");
+                  if (q == null || q.trim().isEmpty()) return error("พิมพ์ชื่อเพลงหรือศิลปิน");
+                  List<android.support.v4.media.MediaBrowserCompat.MediaItem> items =
+                          searcher.search(pkg, browserServices().get(pkg), q.trim());
+                  if (items == null) {
+                      return error(appLabel(pkg) + " ไม่ส่งรายการผลค้นหามา แตะ “เล่นผลลัพธ์แรกเลย” ด้านบนแทนได้");
+                  }
+                  try {
+                      JSONObject o = new JSONObject();
+                      o.put("ok", true);
+                      o.put("items", searcher.itemsJson(lib, items));
+                      if (items.isEmpty()) o.put("msg", "ไม่พบเพลงที่ค้นหา");
+                      return o.toString();
+                  } catch (JSONException e) {
+                      return error("อ่านผลค้นหาไม่ได้");
                   }
               }
 
@@ -1576,6 +1618,158 @@ jobs:
                       return bo.toByteArray();
                   } catch (IOException e) {
                       return "<h2>missing page</h2>".getBytes(StandardCharsets.UTF_8);
+                  }
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/Searcher.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.content.ComponentName;
+          import android.content.Context;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.support.v4.media.MediaBrowserCompat;
+          import android.support.v4.media.MediaDescriptionCompat;
+
+          import org.json.JSONArray;
+          import org.json.JSONException;
+          import org.json.JSONObject;
+
+          import java.util.List;
+          import java.util.concurrent.CountDownLatch;
+          import java.util.concurrent.TimeUnit;
+          import java.util.concurrent.atomic.AtomicReference;
+
+          /**
+           * ค้นหาเพลงในแอปผ่าน MediaBrowserCompat (androidx.media) แบบเดียวกับช่องค้นหาของ Android Auto
+           * เรียกจาก thread ของ HTTP เท่านั้น
+           */
+          final class Searcher {
+              private static final int MAX_ITEMS = 100;
+
+              private final Context ctx;
+              private final Handler main;
+              private Conn conn;
+
+              private static final class Conn {
+                  final String pkg;
+                  final CountDownLatch ready = new CountDownLatch(1);
+                  volatile MediaBrowserCompat browser;
+                  volatile boolean ok, dead;
+
+                  Conn(String pkg) {
+                      this.pkg = pkg;
+                  }
+              }
+
+              Searcher(Context ctx, Handler main) {
+                  this.ctx = ctx;
+                  this.main = main;
+              }
+
+              private MediaBrowserCompat connect(String pkg, String serviceClass) {
+                  if (pkg == null || serviceClass == null) return null;
+                  Conn c;
+                  synchronized (this) {
+                      if (conn != null && conn.pkg.equals(pkg) && !conn.dead) {
+                          c = conn;
+                      } else {
+                          final Conn old = conn;
+                          if (old != null) {
+                              main.post(() -> {
+                                  try {
+                                      if (old.browser != null) old.browser.disconnect();
+                                  } catch (Exception ignored) {
+                                  }
+                              });
+                          }
+                          c = new Conn(pkg);
+                          conn = c;
+                          final Conn cc = c;
+                          main.post(() -> {
+                              try {
+                                  cc.browser = new MediaBrowserCompat(ctx, new ComponentName(pkg, serviceClass),
+                                          new MediaBrowserCompat.ConnectionCallback() {
+                                              @Override
+                                              public void onConnected() {
+                                                  cc.ok = true;
+                                                  cc.ready.countDown();
+                                              }
+
+                                              @Override
+                                              public void onConnectionFailed() {
+                                                  cc.dead = true;
+                                                  cc.ready.countDown();
+                                              }
+
+                                              @Override
+                                              public void onConnectionSuspended() {
+                                                  cc.ok = false;
+                                                  cc.dead = true;
+                                              }
+                                          }, null);
+                                  cc.browser.connect();
+                              } catch (Exception e) {
+                                  cc.dead = true;
+                                  cc.ready.countDown();
+                              }
+                          });
+                      }
+                  }
+                  await(c.ready, 6);
+                  return c.ok && !c.dead ? c.browser : null;
+              }
+
+              /** คืน null ถ้าแอปไม่รองรับการค้นหาจากภายนอก */
+              List<MediaBrowserCompat.MediaItem> search(String pkg, String serviceClass, String query) {
+                  MediaBrowserCompat b = connect(pkg, serviceClass);
+                  if (b == null) return null;
+                  AtomicReference<List<MediaBrowserCompat.MediaItem>> res = new AtomicReference<>();
+                  CountDownLatch done = new CountDownLatch(1);
+                  main.post(() -> {
+                      try {
+                          b.search(query, new Bundle(), new MediaBrowserCompat.SearchCallback() {
+                              @Override
+                              public void onSearchResult(String q, Bundle extras, List<MediaBrowserCompat.MediaItem> items) {
+                                  res.set(items);
+                                  done.countDown();
+                              }
+
+                              @Override
+                              public void onError(String q, Bundle extras) {
+                                  done.countDown();
+                              }
+                          });
+                      } catch (Exception e) {
+                          done.countDown();
+                      }
+                  });
+                  await(done, 12);
+                  return res.get();
+              }
+
+              JSONArray itemsJson(Library lib, List<MediaBrowserCompat.MediaItem> items) throws JSONException {
+                  JSONArray arr = new JSONArray();
+                  if (items == null) return arr;
+                  for (MediaBrowserCompat.MediaItem it : items) {
+                      if (arr.length() >= MAX_ITEMS) break;
+                      if (it.getMediaId() == null) continue;
+                      MediaDescriptionCompat d = it.getDescription();
+                      JSONObject o = lib.entryJson(d.getTitle(), d.getSubtitle(), d.getIconUri(), d.getIconBitmap());
+                      o.put("id", it.getMediaId());
+                      o.put("browsable", it.isBrowsable());
+                      o.put("playable", it.isPlayable());
+                      arr.put(o);
+                  }
+                  return arr;
+              }
+
+              private static void await(CountDownLatch l, int seconds) {
+                  try {
+                      l.await(seconds, TimeUnit.SECONDS);
+                  } catch (InterruptedException ignored) {
                   }
               }
           }
