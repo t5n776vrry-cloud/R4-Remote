@@ -1,4 +1,4 @@
-# รีโมทเพลง R4 v1.1 — ไฟล์เดียวจบ
+# รีโมทเพลง R4 v1.2 — ไฟล์เดียวจบ
 # วางไฟล์นี้ไว้ที่ .github/workflows/build.yml ใน GitHub repo
 # GitHub จะสร้างโปรเจกต์และไฟล์ R4Remote.apk ให้เอง (ดูที่หน้า Releases)
 name: Build R4Remote APK
@@ -69,8 +69,8 @@ jobs:
                   applicationId 'com.r4remote'
                   minSdk 26
                   targetSdk 33
-                  versionCode 2
-                  versionName '1.1'
+                  versionCode 3
+                  versionName '1.2'
               }
 
               // ใช้กุญแจเซ็นแอปตัวเดิมทุกครั้ง เพื่อให้ติดตั้งเวอร์ชันใหม่ทับได้โดยไม่ต้องลบแอปเก่า
@@ -217,7 +217,35 @@ jobs:
           .item .ck{width:22px;height:22px;fill:var(--acc);visibility:hidden;flex:none}
           .item.sel .ck{visibility:visible}
           .item.busy{opacity:.5}
-          .empty{color:var(--mut);text-align:center;padding:24px;font-size:14px}
+          .empty{color:var(--mut);text-align:center;padding:24px;font-size:14px;line-height:1.5}
+
+          /* เลือกเพลง */
+          .pick{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 auto;border:0;border-radius:999px;
+           background:var(--card);color:var(--fg);font:600 15px -apple-system,sans-serif;padding:13px 22px}
+          .pick:active{background:var(--card2);transform:scale(.97)}
+          .pick svg{width:20px;height:20px;fill:var(--acc)}
+          .panel.tall{height:88vh;max-height:none}
+          .panel.tall .list{flex:1}
+          .top{position:relative}
+          .x{position:absolute;right:12px;top:6px;border:0;background:none;color:var(--acc);font:600 15px -apple-system,sans-serif;padding:6px 8px}
+          .tabs{display:flex;gap:6px;margin:4px 14px 10px;background:#13161c;border-radius:12px;padding:4px}
+          .tabs button{flex:1;border:0;background:none;color:var(--mut);font:600 14px -apple-system,sans-serif;padding:9px 0;border-radius:9px}
+          .tabs button.on{background:var(--card2);color:var(--fg)}
+          .bar{display:flex;align-items:center;gap:8px;margin:0 14px 8px;min-height:0}
+          .bar.hide{display:none}
+          .back{border:0;background:var(--card2);color:var(--fg);border-radius:10px;padding:8px 12px;font:600 14px -apple-system,sans-serif;flex:none}
+          .crumb{flex:1;min-width:0;font-size:14px;color:var(--mut);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+          .sbox{flex:1;min-width:0;border:0;border-radius:10px;background:#13161c;color:var(--fg);font-size:16px;padding:10px 12px;outline:none;-webkit-user-select:text;user-select:text}
+          .go{border:0;background:var(--acc);color:#04130a;border-radius:10px;padding:10px 14px;font:700 14px -apple-system,sans-serif;flex:none}
+          .quick{display:block;width:calc(100% - 28px);margin:0 14px 8px;border:0;border-radius:12px;background:var(--card2);
+           color:var(--acc);font:600 15px -apple-system,sans-serif;padding:12px}
+          .quick.hide{display:none}
+          .item .ph{width:44px;height:44px;border-radius:11px;background:#2a2e38;flex:none;display:grid;place-items:center}
+          .item .ph svg{width:22px;height:22px;fill:#555b68}
+          .item.now .n{color:var(--acc)}
+          .item .go2{border:0;background:var(--acc);color:#04130a;border-radius:50%;width:36px;height:36px;display:grid;place-items:center;flex:none}
+          .item .go2 svg{width:18px;height:18px;fill:currentColor}
+          .item .arr{width:20px;height:20px;fill:#555b68;flex:none}
           @keyframes up{from{transform:translateY(100%)}to{transform:none}}
           @keyframes fade{from{opacity:0}to{opacity:1}}
           </style></head><body>
@@ -243,8 +271,28 @@ jobs:
             <button class="c sm" data-a="volup" aria-label="เพิ่มเสียง"><svg viewBox="0 0 24 24"><path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6z"/></svg></button>
             <button class="c sm" data-a="mute" aria-label="ปิดเสียง"><svg viewBox="0 0 24 24"><path d="M16.5 12A4.5 4.5 0 0 0 14 8v2.2l2.45 2.45c.03-.2.05-.42.05-.65zM19 12c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-3-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9zM12 4 9.91 6.09 12 8.18z"/></svg></button>
            </div>
+           <button class="pick" id="pickbtn"><svg viewBox="0 0 24 24"><path d="M3 10h11v2H3zm0-4h11v2H3zm0 8h7v2H3zm13-1v8l6-4z"/></svg>เลือกเพลง</button>
            <div class="status" id="st"></div>
           </main>
+
+          <div class="sheet" id="lib">
+           <div class="backdrop" data-close="lib"></div>
+           <div class="panel tall">
+            <div class="top"><div class="handle"></div><button class="x" data-close="lib">ปิด</button></div>
+            <div class="tabs" id="tabs">
+             <button data-tab="queue" class="on">คิว</button>
+             <button data-tab="browse">คลังเพลง</button>
+             <button data-tab="search">ค้นหา</button>
+            </div>
+            <div class="bar hide" id="navbar"><button class="back" id="back">‹ ย้อนกลับ</button><div class="crumb" id="crumb"></div></div>
+            <form class="bar hide" id="sform" autocomplete="off">
+             <input class="sbox" id="sq" type="search" enterkeyhint="search" placeholder="ชื่อเพลง ศิลปิน หรืออัลบั้ม">
+             <button class="go" type="submit">ค้นหา</button>
+            </form>
+            <button class="quick hide" id="quick">▶ เล่นผลลัพธ์แรกเลย</button>
+            <div class="list" id="liblist"></div>
+           </div>
+          </div>
 
           <div class="sheet" id="sheet">
            <div class="backdrop" id="backdrop"></div>
@@ -339,24 +387,125 @@ jobs:
             closeSheet();
           });
 
+          /* ---------- เลือกเพลง: คิว / คลังเพลง / ค้นหา ---------- */
+          const NOTE = '<div class="ph"><svg viewBox="0 0 24 24"><path d="M12 3v10.55A4 4 0 1 0 14 17V7h4V3z"/></svg></div>';
+          const FOLDER = '<div class="ph"><svg viewBox="0 0 24 24"><path d="M10 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-8z"/></svg></div>';
+          const ARROW = '<svg class="arr" viewBox="0 0 24 24"><path d="M10 6 8.6 7.4 13.2 12l-4.6 4.6L10 18l6-6z"/></svg>';
+          const PLAYBTN = '<button class="go2" aria-label="เล่น"><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></button>';
+          let tab = "queue", stack = [], lastQuery = "";
+
+          function imgSrc(icon){ return icon ? (icon[0] === "#" ? "/api/img" + Q + "&i=" + encodeURIComponent(icon.slice(1)) : icon) : ""; }
+
+          async function getJSON(path, extra){
+            const r = await fetch(path + Q + (extra || ""));
+            if (!r.ok) throw 0;
+            return r.json();
+          }
+
+          function msg(text){ $("liblist").innerHTML = '<div class="empty">' + esc(text) + '</div>'; }
+
+          function render(items, kind){
+            $("liblist").innerHTML = items.map(it => {
+              const folder = kind === "media" && it.browsable;
+              const ph = folder ? FOLDER : NOTE;
+              const pic = it.icon ? '<img src="' + esc(imgSrc(it.icon)) + '" alt="">' : ph;
+              const id = kind === "queue" ? it.qid : it.id;
+              const tail = folder ? (it.playable ? PLAYBTN : ARROW) : "";
+              return '<div class="item' + (it.active ? " now" : "") + '" data-kind="' + kind + '" data-id="' + esc(id)
+                + '" data-b="' + (folder ? 1 : 0) + '" data-title="' + esc(it.title) + '">'
+                + pic + '<div class="t"><div class="n">' + esc(it.title || "(ไม่มีชื่อ)") + '</div>'
+                + (it.subtitle ? '<div class="s">' + esc(it.subtitle) + '</div>' : "") + '</div>' + tail + '</div>';
+            }).join("");
+            // รูปที่โหลดไม่ขึ้นให้ใช้ไอคอนแทน
+            $("liblist").querySelectorAll("img").forEach(img => img.onerror = () => {
+              img.outerHTML = img.closest(".item").dataset.b === "1" ? FOLDER : NOTE;
+            });
+          }
+
+          function setTab(t, noLoad){
+            tab = t;
+            $("tabs").querySelectorAll("button").forEach(b => b.classList.toggle("on", b.dataset.tab === t));
+            $("sform").classList.toggle("hide", t !== "search");
+            $("navbar").classList.toggle("hide", t !== "browse" || !stack.length);
+            $("quick").classList.add("hide");
+            if (noLoad) return;
+            if (t === "queue") loadQueue();
+            else if (t === "browse") loadBrowse();
+            else if (lastQuery) runSearch(lastQuery);
+            else msg("พิมพ์ชื่อเพลง ศิลปิน หรืออัลบั้ม แล้วแตะค้นหา");
+          }
+
+          async function loadQueue(){
+            msg("กำลังโหลดคิว…");
+            try{
+              const d = await getJSON("/api/queue");
+              if (!d.items.length) return msg(d.msg || "คิวว่าง");
+              render(d.items, "queue");
+              const now = $("liblist").querySelector(".item.now");
+              if (now) now.scrollIntoView({block: "center"});
+            }catch(e){ msg("โหลดคิวไม่ได้"); }
+          }
+
+          async function loadBrowse(){
+            const cur = stack[stack.length - 1];
+            $("navbar").classList.toggle("hide", !stack.length);
+            $("crumb").textContent = stack.map(s => s.title).join(" › ");
+            msg("กำลังโหลด…");
+            try{
+              const d = await getJSON("/api/browse", cur ? "&id=" + encodeURIComponent(cur.id) : "");
+              if (!d.items.length) return msg(d.msg || "ไม่มีรายการ");
+              render(d.items, "media");
+            }catch(e){ msg("โหลดคลังเพลงไม่ได้"); }
+          }
+
+          async function runSearch(q){
+            lastQuery = q;
+            $("quick").classList.remove("hide");
+            msg("กำลังค้นหา…");
+            try{
+              const d = await getJSON("/api/search", "&q=" + encodeURIComponent(q));
+              if (!d.items.length) return msg(d.msg || "ไม่พบเพลงที่ค้นหา");
+              render(d.items, "media");
+            }catch(e){ msg("ค้นหาไม่ได้"); }
+          }
+
+          async function play(path, extra){
+            msg("กำลังเล่น…");
+            if (await call(path, {method: "POST"}, extra)) $("lib").classList.remove("open");
+            else msg("สั่งเล่นไม่ได้ ลองอีกครั้ง");
+          }
+
+          $("pickbtn").addEventListener("click", () => { $("lib").classList.add("open"); setTab(tab); });
+          document.querySelectorAll("[data-close]").forEach(el =>
+            el.addEventListener("click", () => $(el.dataset.close).classList.remove("open")));
+          $("tabs").addEventListener("click", e => { const b = e.target.closest("button"); if (b) setTab(b.dataset.tab); });
+          $("back").addEventListener("click", () => { stack.pop(); loadBrowse(); });
+          $("sform").addEventListener("submit", e => {
+            e.preventDefault();
+            const q = $("sq").value.trim();
+            if (!q) return;
+            $("sq").blur();
+            runSearch(q);
+          });
+          $("quick").addEventListener("click", () => { if (lastQuery) play("/api/searchplay", "&q=" + encodeURIComponent(lastQuery)); });
+          $("liblist").addEventListener("click", e => {
+            const item = e.target.closest(".item");
+            if (!item) return;
+            const id = item.dataset.id;
+            if (item.dataset.kind === "queue") return play("/api/queue/play", "&id=" + encodeURIComponent(id));
+            if (item.dataset.b === "1" && !e.target.closest(".go2")) {
+              if (tab === "search") { stack = []; setTab("browse", true); }
+              stack.push({id, title: item.dataset.title || "…"});
+              return loadBrowse();
+            }
+            play("/api/browse/play", "&id=" + encodeURIComponent(id));
+          });
+
           call("/api/status");
-          setInterval(() => { if(!document.hidden && !$("sheet").classList.contains("open")) call("/api/status"); }, 2500);
+          setInterval(() => { if(!document.hidden && !document.querySelector(".sheet.open")) call("/api/status"); }, 2500);
           document.addEventListener("visibilitychange", () => { if(!document.hidden) call("/api/status"); });
           </script>
           </body></html>
-          R4EOF
-          mkdir -p app/src/main/java/com/r4remote
-          cat > app/src/main/java/com/r4remote/MediaListener.java <<'R4EOF'
-          package com.r4remote;
-
-          import android.service.notification.NotificationListenerService;
-
-          /**
-           * ไม่ได้ทำอะไรกับการแจ้งเตือนเลย มีไว้เพื่อให้ระบบอนุญาต
-           * ให้แอปเข้าถึง MediaSession ของทุกแอป (getActiveSessions)
-           */
-          public class MediaListener extends NotificationListenerService {
-          }
           R4EOF
           mkdir -p app/src/main/java/com/r4remote
           cat > app/src/main/java/com/r4remote/BootReceiver.java <<'R4EOF'
@@ -377,87 +526,468 @@ jobs:
           }
           R4EOF
           mkdir -p app/src/main/java/com/r4remote
-          cat > app/src/main/java/com/r4remote/Util.java <<'R4EOF'
+          cat > app/src/main/java/com/r4remote/Library.java <<'R4EOF'
           package com.r4remote;
 
+          import android.content.ComponentName;
           import android.content.Context;
-          import android.content.Intent;
-          import android.content.SharedPreferences;
-          import android.provider.Settings;
+          import android.graphics.Bitmap;
+          import android.graphics.BitmapFactory;
+          import android.media.MediaDescription;
+          import android.media.browse.MediaBrowser;
+          import android.media.session.MediaController;
+          import android.media.session.MediaSession;
+          import android.media.session.PlaybackState;
+          import android.net.Uri;
+          import android.os.Bundle;
+          import android.os.Handler;
 
-          import java.net.Inet4Address;
-          import java.net.InetAddress;
-          import java.net.NetworkInterface;
-          import java.security.SecureRandom;
-          import java.util.Collections;
+          import org.json.JSONArray;
+          import org.json.JSONException;
+          import org.json.JSONObject;
 
-          final class Util {
-              static final int PORT = 8765;
-              private static final String PREFS = "r4remote";
+          import java.io.ByteArrayOutputStream;
+          import java.io.InputStream;
+          import java.util.List;
+          import java.util.Map;
+          import java.util.concurrent.ConcurrentHashMap;
+          import java.util.concurrent.CountDownLatch;
+          import java.util.concurrent.TimeUnit;
+          import java.util.concurrent.atomic.AtomicInteger;
+          import java.util.concurrent.atomic.AtomicReference;
 
-              private Util() {}
+          /**
+           * คุยกับคลังเพลงของแอปผ่าน MediaBrowserService (แบบเดียวกับ Android Auto):
+           * ไล่ดูเพลย์ลิสต์/อัลบั้ม ค้นหา และอ่านคิวเพลง
+           * ทุกเมธอดที่รอผลต้องเรียกจาก thread ของ HTTP ไม่ใช่ main thread
+           */
+          final class Library {
+              private static final int MAX_ITEMS = 300;
 
-              private static SharedPreferences prefs(Context c) {
-                  return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+              private final Context ctx;
+              private final Handler main;
+              private final Map<String, Object> images = new ConcurrentHashMap<>();
+              private final AtomicInteger imageSeq = new AtomicInteger();
+              private Conn conn;
+
+              private static final class Conn {
+                  final String pkg;
+                  final CountDownLatch ready = new CountDownLatch(1);
+                  volatile MediaBrowser browser;
+                  volatile boolean ok, dead;
+
+                  Conn(String pkg) {
+                      this.pkg = pkg;
+                  }
               }
 
-              /** รหัสลับในลิงก์ สุ่มครั้งเดียวแล้วจำไว้ ลิงก์จึงไม่เปลี่ยน */
-              static synchronized String token(Context c) {
-                  SharedPreferences p = prefs(c);
-                  String t = p.getString("token", null);
-                  if (t == null) {
-                      String chars = "abcdefghjkmnpqrstuvwxyz23456789";
-                      SecureRandom r = new SecureRandom();
-                      StringBuilder sb = new StringBuilder();
-                      for (int i = 0; i < 8; i++) sb.append(chars.charAt(r.nextInt(chars.length())));
-                      t = sb.toString();
-                      p.edit().putString("token", t).apply();
+              Library(Context ctx, Handler main) {
+                  this.ctx = ctx;
+                  this.main = main;
+              }
+
+              /** เชื่อมต่อคลังเพลงของแอป คืน null ถ้าแอปไม่อนุญาตหรือไม่ตอบ */
+              MediaBrowser browser(String pkg, String serviceClass) {
+                  if (pkg == null || serviceClass == null) return null;
+                  Conn c;
+                  synchronized (this) {
+                      if (conn != null && conn.pkg.equals(pkg) && !conn.dead) {
+                          c = conn;
+                      } else {
+                          final Conn old = conn;
+                          if (old != null) {
+                              main.post(() -> {
+                                  try {
+                                      if (old.browser != null) old.browser.disconnect();
+                                  } catch (Exception ignored) {
+                                  }
+                              });
+                          }
+                          c = new Conn(pkg);
+                          conn = c;
+                          final Conn cc = c;
+                          main.post(() -> {
+                              try {
+                                  cc.browser = new MediaBrowser(ctx, new ComponentName(pkg, serviceClass),
+                                          new MediaBrowser.ConnectionCallback() {
+                                              @Override
+                                              public void onConnected() {
+                                                  cc.ok = true;
+                                                  cc.ready.countDown();
+                                              }
+
+                                              @Override
+                                              public void onConnectionFailed() {
+                                                  cc.dead = true;
+                                                  cc.ready.countDown();
+                                              }
+
+                                              @Override
+                                              public void onConnectionSuspended() {
+                                                  cc.ok = false;
+                                                  cc.dead = true;
+                                              }
+                                          }, null);
+                                  cc.browser.connect();
+                              } catch (Exception e) {
+                                  cc.dead = true;
+                                  cc.ready.countDown();
+                              }
+                          });
+                      }
                   }
+                  await(c.ready, 6);
+                  return c.ok && !c.dead ? c.browser : null;
+              }
+
+              MediaController controllerFor(MediaBrowser b) {
+                  return new MediaController(ctx, b.getSessionToken());
+              }
+
+              /** รายการในโฟลเดอร์ (parentId ว่าง = หน้าแรก) คืน null ถ้าแอปไม่ให้ดู */
+              List<MediaBrowser.MediaItem> children(MediaBrowser b, String parentId) {
+                  AtomicReference<List<MediaBrowser.MediaItem>> res = new AtomicReference<>();
+                  CountDownLatch done = new CountDownLatch(1);
+                  main.post(() -> {
+                      try {
+                          String id = (parentId == null || parentId.isEmpty()) ? b.getRoot() : parentId;
+                          b.subscribe(id, new MediaBrowser.SubscriptionCallback() {
+                              @Override
+                              public void onChildrenLoaded(String pid, List<MediaBrowser.MediaItem> children) {
+                                  res.set(children);
+                                  try {
+                                      b.unsubscribe(pid);
+                                  } catch (Exception ignored) {
+                                  }
+                                  done.countDown();
+                              }
+
+                              @Override
+                              public void onError(String pid) {
+                                  done.countDown();
+                              }
+                          });
+                      } catch (Exception e) {
+                          done.countDown();
+                      }
+                  });
+                  await(done, 8);
+                  return res.get();
+              }
+
+              /** ค้นหาในแอป คืน null ถ้าแอปไม่รองรับการส่งผลค้นหา */
+              List<MediaBrowser.MediaItem> search(MediaBrowser b, String query) {
+                  AtomicReference<List<MediaBrowser.MediaItem>> res = new AtomicReference<>();
+                  CountDownLatch done = new CountDownLatch(1);
+                  main.post(() -> {
+                      try {
+                          b.search(query, new Bundle(), new MediaBrowser.SearchCallback() {
+                              @Override
+                              public void onSearchResult(String q, Bundle extras, List<MediaBrowser.MediaItem> items) {
+                                  res.set(items);
+                                  done.countDown();
+                              }
+
+                              @Override
+                              public void onError(String q, Bundle extras) {
+                                  done.countDown();
+                              }
+                          });
+                      } catch (Exception e) {
+                          done.countDown();
+                      }
+                  });
+                  await(done, 10);
+                  return res.get();
+              }
+
+              JSONArray itemsJson(List<MediaBrowser.MediaItem> items) throws JSONException {
+                  JSONArray arr = new JSONArray();
+                  if (items == null) return arr;
+                  for (MediaBrowser.MediaItem it : items) {
+                      if (arr.length() >= MAX_ITEMS) break;
+                      if (it.getMediaId() == null) continue;
+                      JSONObject o = descJson(it.getDescription());
+                      o.put("id", it.getMediaId());
+                      o.put("browsable", it.isBrowsable());
+                      o.put("playable", it.isPlayable());
+                      arr.put(o);
+                  }
+                  return arr;
+              }
+
+              JSONObject queueJson(MediaController c) throws JSONException {
+                  JSONObject o = new JSONObject();
+                  JSONArray arr = new JSONArray();
+                  PlaybackState st = c.getPlaybackState();
+                  long active = st == null ? MediaSession.QueueItem.UNKNOWN_ID : st.getActiveQueueItemId();
+                  List<MediaSession.QueueItem> q = c.getQueue();
+                  if (q != null) {
+                      for (MediaSession.QueueItem qi : q) {
+                          if (arr.length() >= MAX_ITEMS) break;
+                          JSONObject j = descJson(qi.getDescription());
+                          j.put("qid", String.valueOf(qi.getQueueId()));
+                          j.put("active", qi.getQueueId() == active);
+                          arr.put(j);
+                      }
+                  }
+                  CharSequence title = c.getQueueTitle();
+                  o.put("title", title == null ? "" : title.toString());
+                  o.put("items", arr);
+                  return o;
+              }
+
+              private JSONObject descJson(MediaDescription d) throws JSONException {
+                  JSONObject o = new JSONObject();
+                  o.put("title", d.getTitle() == null ? "" : d.getTitle().toString());
+                  o.put("subtitle", d.getSubtitle() == null ? "" : d.getSubtitle().toString());
+                  o.put("icon", icon(d));
+                  return o;
+              }
+
+              /** รูปปก: ลิงก์ http ส่งต่อตรงๆ ส่วนรูปในเครื่องจะได้รหัส "#n" ให้หน้าเว็บขอผ่าน /api/img */
+              private String icon(MediaDescription d) {
+                  Uri u = d.getIconUri();
+                  if (u != null && ("http".equals(u.getScheme()) || "https".equals(u.getScheme()))) {
+                      return u.toString();
+                  }
+                  Object src = d.getIconBitmap() != null ? d.getIconBitmap() : u;
+                  if (src == null) return "";
+                  if (images.size() > 600) images.clear();
+                  String key = Integer.toString(imageSeq.incrementAndGet());
+                  images.put(key, src);
+                  return "#" + key;
+              }
+
+              byte[] image(String key) {
+                  Object src = key == null ? null : images.get(key);
+                  if (src == null) return null;
+                  try {
+                      Bitmap b = src instanceof Bitmap ? (Bitmap) src : null;
+                      if (b == null) {
+                          try (InputStream is = ctx.getContentResolver().openInputStream((Uri) src)) {
+                              b = BitmapFactory.decodeStream(is);
+                          }
+                      }
+                      if (b == null) return null;
+                      if (b.getWidth() > 200) {
+                          b = Bitmap.createScaledBitmap(b, 200, Math.max(1, 200 * b.getHeight() / b.getWidth()), true);
+                      }
+                      ByteArrayOutputStream bo = new ByteArrayOutputStream();
+                      b.compress(Bitmap.CompressFormat.JPEG, 85, bo);
+                      return bo.toByteArray();
+                  } catch (Exception e) {
+                      return null;
+                  }
+              }
+
+              private static void await(CountDownLatch l, int seconds) {
+                  try {
+                      l.await(seconds, TimeUnit.SECONDS);
+                  } catch (InterruptedException ignored) {
+                  }
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/MainActivity.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.app.Activity;
+          import android.content.Intent;
+          import android.graphics.Bitmap;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.net.Uri;
+          import android.os.Build;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.os.Looper;
+          import android.os.PowerManager;
+          import android.provider.Settings;
+          import android.view.Gravity;
+          import android.view.ViewGroup;
+          import android.widget.Button;
+          import android.widget.ImageView;
+          import android.widget.LinearLayout;
+          import android.widget.ScrollView;
+          import android.widget.TextView;
+
+          import com.google.zxing.BarcodeFormat;
+          import com.google.zxing.common.BitMatrix;
+          import com.google.zxing.qrcode.QRCodeWriter;
+
+          public class MainActivity extends Activity {
+              private static final int BG = Color.parseColor("#0f1115");
+              private static final int FG = Color.parseColor("#f2f3f5");
+              private static final int MUTED = Color.parseColor("#8b919c");
+              private static final int ACCENT = Color.parseColor("#1ed760");
+
+              private TextView statusText, urlText, hintText;
+              private ImageView qr;
+              private Button accessBtn, batteryBtn, toggleBtn;
+              private final Handler handler = new Handler(Looper.getMainLooper());
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+                  getWindow().setStatusBarColor(BG);
+                  int pad = dp(20);
+
+                  LinearLayout col = new LinearLayout(this);
+                  col.setOrientation(LinearLayout.VERTICAL);
+                  col.setGravity(Gravity.CENTER_HORIZONTAL);
+                  col.setPadding(pad, pad, pad, pad);
+                  col.setBackgroundColor(BG);
+
+                  TextView title = text("รีโมทเพลง R4", 24, FG);
+                  title.setTypeface(Typeface.DEFAULT_BOLD);
+                  col.addView(title);
+
+                  statusText = text("", 15, MUTED);
+                  statusText.setPadding(0, dp(6), 0, dp(14));
+                  col.addView(statusText);
+
+                  accessBtn = button(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
+                  col.addView(accessBtn);
+
+                  batteryBtn = button(v -> {
+                      Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
+                              Uri.parse("package:" + getPackageName()));
+                      try {
+                          startActivity(i);
+                      } catch (Exception e) {
+                          startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
+                      }
+                  });
+                  col.addView(batteryBtn);
+
+                  toggleBtn = button(v -> {
+                      boolean run = !Util.wantRunning(this);
+                      Util.setWantRunning(this, run);
+                      if (run) Util.startService(this);
+                      else Util.stopService(this);
+                      refresh();
+                  });
+                  col.addView(toggleBtn);
+
+                  qr = new ImageView(this);
+                  LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(dp(240), dp(240));
+                  qp.topMargin = dp(20);
+                  col.addView(qr, qp);
+
+                  urlText = text("", 15, FG);
+                  urlText.setTextIsSelectable(true);
+                  urlText.setPadding(0, dp(10), 0, 0);
+                  col.addView(urlText);
+
+                  hintText = text("", 13, MUTED);
+                  hintText.setPadding(0, dp(10), 0, 0);
+                  col.addView(hintText);
+
+                  ScrollView sv = new ScrollView(this);
+                  sv.setBackgroundColor(BG);
+                  sv.setFillViewport(true);
+                  sv.addView(col);
+                  setContentView(sv);
+
+                  if (Build.VERSION.SDK_INT >= 33) {
+                      requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
+                  }
+              }
+
+              @Override
+              protected void onResume() {
+                  super.onResume();
+                  refresh();
+                  // ถ้าเคยเปิดไว้แต่ service ถูกระบบปิด ให้เปิดใหม่
+                  if (Util.wantRunning(this)) Util.startService(this);
+              }
+
+              private void refresh() {
+                  handler.removeCallbacksAndMessages(null);
+                  boolean access = Util.hasMediaAccess(this);
+                  boolean battery = getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(getPackageName());
+                  boolean running = Util.wantRunning(this);
+
+                  accessBtn.setText(access ? "✓ อนุญาตเข้าถึงการแจ้งเตือนแล้ว" : "1. อนุญาตเข้าถึงการแจ้งเตือน (จำเป็น)");
+                  accessBtn.setTextColor(access ? ACCENT : FG);
+                  batteryBtn.setText(battery ? "✓ ไม่จำกัดแบตเตอรี่แล้ว" : "2. ปิดการจำกัดแบตเตอรี่ (แนะนำ)");
+                  batteryBtn.setTextColor(battery ? ACCENT : FG);
+                  toggleBtn.setText(running ? "หยุดรีโมท" : "3. เริ่มรีโมท");
+
+                  String url = Util.url(this);
+                  if (!running) {
+                      statusText.setText("หยุดอยู่");
+                      qr.setImageBitmap(null);
+                      urlText.setText("");
+                      hintText.setText("ทำตามขั้นที่ 1–3 แล้วสแกน QR ด้วยกล้อง iPhone");
+                  } else if (url == null) {
+                      statusText.setText("ยังไม่ได้ต่อ Wi-Fi");
+                      qr.setImageBitmap(null);
+                      urlText.setText("");
+                      hintText.setText("ต่อ Wi-Fi วงเดียวกับ iPhone");
+                      handler.postDelayed(this::refresh, 3000);
+                  } else {
+                      statusText.setText("กำลังทำงาน");
+                      qr.setImageBitmap(qrBitmap(url));
+                      urlText.setText(url);
+                      hintText.setText("สแกน QR ด้วยกล้อง iPhone แล้วเปิดใน Safari\n"
+                              + "จากนั้นกดแชร์ → เพิ่มไปยังหน้าจอโฮม\n"
+                              + "ปิดหน้าจอ R4 ได้ รีโมทยังทำงานอยู่");
+                  }
+              }
+
+              private static Bitmap qrBitmap(String s) {
+                  try {
+                      int size = 480;
+                      BitMatrix m = new QRCodeWriter().encode(s, BarcodeFormat.QR_CODE, size, size);
+                      int[] px = new int[size * size];
+                      for (int y = 0; y < size; y++)
+                          for (int x = 0; x < size; x++)
+                              px[y * size + x] = m.get(x, y) ? Color.BLACK : Color.WHITE;
+                      return Bitmap.createBitmap(px, size, size, Bitmap.Config.RGB_565);
+                  } catch (Exception e) {
+                      return null;
+                  }
+              }
+
+              private TextView text(String s, int sp, int color) {
+                  TextView t = new TextView(this);
+                  t.setText(s);
+                  t.setTextSize(sp);
+                  t.setTextColor(color);
+                  t.setGravity(Gravity.CENTER);
                   return t;
               }
 
-              static boolean wantRunning(Context c) {
-                  return prefs(c).getBoolean("run", false);
+              private Button button(android.view.View.OnClickListener l) {
+                  Button b = new Button(this);
+                  b.setAllCaps(false);
+                  b.setOnClickListener(l);
+                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                  lp.topMargin = dp(8);
+                  b.setLayoutParams(lp);
+                  return b;
               }
 
-              static void setWantRunning(Context c, boolean run) {
-                  prefs(c).edit().putBoolean("run", run).apply();
+              private int dp(int v) {
+                  return Math.round(v * getResources().getDisplayMetrics().density);
               }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/MediaListener.java <<'R4EOF'
+          package com.r4remote;
 
-              static void startService(Context c) {
-                  c.startForegroundService(new Intent(c, RemoteService.class));
-              }
+          import android.service.notification.NotificationListenerService;
 
-              static void stopService(Context c) {
-                  c.stopService(new Intent(c, RemoteService.class));
-              }
-
-              /** IP ของเครื่องในวง Wi-Fi (เลือก wlan ก่อน) */
-              static String ip() {
-                  String fallback = null;
-                  try {
-                      for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
-                          if (!ni.isUp() || ni.isLoopback()) continue;
-                          for (InetAddress a : Collections.list(ni.getInetAddresses())) {
-                              if (!(a instanceof Inet4Address) || a.isLoopbackAddress()) continue;
-                              if (ni.getName().startsWith("wlan")) return a.getHostAddress();
-                              if (fallback == null) fallback = a.getHostAddress();
-                          }
-                      }
-                  } catch (Exception ignored) {
-                  }
-                  return fallback;
-              }
-
-              static String url(Context c) {
-                  String ip = ip();
-                  return ip == null ? null : "http://" + ip + ":" + PORT + "/?k=" + token(c);
-              }
-
-              static boolean hasMediaAccess(Context c) {
-                  String s = Settings.Secure.getString(c.getContentResolver(), "enabled_notification_listeners");
-                  return s != null && s.contains(c.getPackageName());
-              }
+          /**
+           * ไม่ได้ทำอะไรกับการแจ้งเตือนเลย มีไว้เพื่อให้ระบบอนุญาต
+           * ให้แอปเข้าถึง MediaSession ของทุกแอป (getActiveSessions)
+           */
+          public class MediaListener extends NotificationListenerService {
           }
           R4EOF
           mkdir -p app/src/main/java/com/r4remote
@@ -484,6 +1014,7 @@ jobs:
           import android.media.session.PlaybackState;
           import android.net.Uri;
           import android.net.wifi.WifiManager;
+          import android.os.Bundle;
           import android.os.Handler;
           import android.os.IBinder;
           import android.os.Looper;
@@ -534,10 +1065,12 @@ jobs:
               private volatile String selectedPkg;
               private final Handler main = new Handler(Looper.getMainLooper());
               private final Map<String, byte[]> iconCache = new ConcurrentHashMap<>();
+              private Library lib;
 
               @Override
               public void onCreate() {
                   super.onCreate();
+                  lib = new Library(this, main);
                   token = Util.token(this);
                   page = readAsset("index.html");
                   startForeground(1, buildNotification());
@@ -634,6 +1167,25 @@ jobs:
                           else send(out, 200, "image/png", icon);
                       } else if ("POST".equals(method) && "/api/select".equals(path)) {
                           if (select(uri.getQueryParameter("pkg"))) sendJson(out, status());
+                          else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
+                      } else if ("GET".equals(method) && "/api/queue".equals(path)) {
+                          sendJson(out, queue());
+                      } else if ("GET".equals(method) && "/api/browse".equals(path)) {
+                          sendJson(out, browse(uri.getQueryParameter("id")));
+                      } else if ("GET".equals(method) && "/api/search".equals(path)) {
+                          sendJson(out, search(uri.getQueryParameter("q")));
+                      } else if ("GET".equals(method) && "/api/img".equals(path)) {
+                          byte[] img = lib.image(uri.getQueryParameter("i"));
+                          if (img == null) send(out, 404, "text/plain", new byte[0]);
+                          else send(out, 200, "image/jpeg", img);
+                      } else if ("POST".equals(method) && "/api/queue/play".equals(path)) {
+                          if (playQueueItem(uri.getQueryParameter("id"))) sendJson(out, status());
+                          else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
+                      } else if ("POST".equals(method) && "/api/browse/play".equals(path)) {
+                          if (playMediaId(uri.getQueryParameter("id"))) sendJson(out, status());
+                          else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
+                      } else if ("POST".equals(method) && "/api/searchplay".equals(path)) {
+                          if (playSearch(uri.getQueryParameter("q"))) sendJson(out, status());
                           else send(out, 404, "application/json", "{}".getBytes(StandardCharsets.UTF_8));
                       } else if ("POST".equals(method) && path.startsWith("/api/")) {
                           if (doAction(path.substring(5))) sendJson(out, status());
@@ -752,53 +1304,146 @@ jobs:
                   Map<String, String> services = browserServices();
                   if (target == null && !services.containsKey(pkg)) return false;
 
-                  for (MediaController c : list) {
-                      if (!c.getPackageName().equals(pkg) && isPlaying(c)) c.getTransportControls().pause();
-                  }
+                  pauseOthers(pkg);
                   selectedPkg = pkg;
                   if (target != null) target.getTransportControls().play();
                   else startApp(pkg, services.get(pkg));
-                  SystemClock.sleep(target != null ? 500 : 1800);
+                  SystemClock.sleep(target != null ? 500 : 1200);
                   return true;
+              }
+
+              private void pauseOthers(String pkg) {
+                  for (MediaController c : sessions()) {
+                      if (!c.getPackageName().equals(pkg) && isPlaying(c)) c.getTransportControls().pause();
+                  }
               }
 
               /** เริ่มเล่นแอปที่ยังไม่ได้เปิด ผ่าน MediaBrowser (แบบเดียวกับ Android Auto) */
               private void startApp(String pkg, String serviceClass) {
-                  if (serviceClass == null) {
-                      sendMediaButton(pkg);
-                      return;
-                  }
-                  main.post(() -> {
-                      final MediaBrowser[] browser = new MediaBrowser[1];
-                      browser[0] = new MediaBrowser(this, new ComponentName(pkg, serviceClass),
-                              new MediaBrowser.ConnectionCallback() {
-                                  @Override
-                                  public void onConnected() {
-                                      try {
-                                          new MediaController(RemoteService.this, browser[0].getSessionToken())
-                                                  .getTransportControls().play();
-                                      } catch (Exception e) {
-                                          sendMediaButton(pkg);
-                                      }
-                                      main.postDelayed(() -> {
-                                          try {
-                                              browser[0].disconnect();
-                                          } catch (Exception ignored) {
-                                          }
-                                      }, 15000);
-                                  }
-
-                                  @Override
-                                  public void onConnectionFailed() {
-                                      sendMediaButton(pkg);
-                                  }
-                              }, null);
-                      try {
-                          browser[0].connect();
-                      } catch (Exception e) {
-                          sendMediaButton(pkg);
+                  MediaBrowser b = lib.browser(pkg, serviceClass);
+                  try {
+                      if (b != null) {
+                          lib.controllerFor(b).getTransportControls().play();
+                          return;
                       }
-                  });
+                  } catch (Exception ignored) {
+                  }
+                  sendMediaButton(pkg);
+              }
+
+              // ------------------------------------------------------------------ เลือกเพลง
+
+              /** แอปที่หน้ารีโมทกำลังควบคุม */
+              private String currentPkg() {
+                  MediaController c = controller();
+                  return c != null ? c.getPackageName() : selectedPkg;
+              }
+
+              /** ตัวควบคุมของแอป: ใช้ session ที่เปิดอยู่ ถ้าไม่มีให้ต่อผ่านคลังเพลง */
+              private MediaController controllerForPkg(String pkg) {
+                  for (MediaController c : sessions()) if (c.getPackageName().equals(pkg)) return c;
+                  MediaBrowser b = lib.browser(pkg, browserServices().get(pkg));
+                  return b == null ? null : lib.controllerFor(b);
+              }
+
+              private static String error(String msg) {
+                  JSONObject o = new JSONObject();
+                  try {
+                      o.put("ok", false);
+                      o.put("msg", msg);
+                      o.put("items", new JSONArray());
+                  } catch (JSONException ignored) {
+                  }
+                  return o.toString();
+              }
+
+              private String queue() {
+                  MediaController c = controller();
+                  if (c == null) return error("ยังไม่มีเพลงกำลังเล่น");
+                  try {
+                      JSONObject o = lib.queueJson(c);
+                      o.put("ok", true);
+                      if (o.getJSONArray("items").length() == 0) {
+                          o.put("msg", "แอปนี้ไม่ได้ส่งคิวเพลงออกมา ลองใช้แท็บคลังเพลงหรือค้นหา");
+                      }
+                      return o.toString();
+                  } catch (Exception e) {
+                      return error("อ่านคิวเพลงไม่ได้");
+                  }
+              }
+
+              private String browse(String parentId) {
+                  String pkg = currentPkg();
+                  if (pkg == null) return error("เลือกแอปก่อน (แตะชื่อแอปบนหน้ารีโมท)");
+                  MediaBrowser b = lib.browser(pkg, browserServices().get(pkg));
+                  if (b == null) return error(appLabel(pkg) + " ไม่อนุญาตให้แอปอื่นเปิดคลังเพลง ลองใช้แท็บค้นหาหรือคิวแทน");
+                  List<MediaBrowser.MediaItem> items = lib.children(b, parentId);
+                  if (items == null) return error(appLabel(pkg) + " ไม่ส่งรายการเพลงมา ลองใช้แท็บค้นหาหรือคิวแทน");
+                  try {
+                      JSONObject o = new JSONObject();
+                      o.put("ok", true);
+                      o.put("app", appLabel(pkg));
+                      o.put("items", lib.itemsJson(items));
+                      if (items.isEmpty()) o.put("msg", "ไม่มีรายการในหน้านี้");
+                      return o.toString();
+                  } catch (JSONException e) {
+                      return error("อ่านรายการไม่ได้");
+                  }
+              }
+
+              private String search(String q) {
+                  String pkg = currentPkg();
+                  if (pkg == null) return error("เลือกแอปก่อน (แตะชื่อแอปบนหน้ารีโมท)");
+                  if (q == null || q.trim().isEmpty()) return error("พิมพ์ชื่อเพลงหรือศิลปิน");
+                  MediaBrowser b = lib.browser(pkg, browserServices().get(pkg));
+                  List<MediaBrowser.MediaItem> items = b == null ? null : lib.search(b, q.trim());
+                  if (items == null) return error(appLabel(pkg) + " ไม่ส่งรายการผลค้นหามา แตะ “เล่นผลลัพธ์แรกเลย” แทนได้");
+                  try {
+                      JSONObject o = new JSONObject();
+                      o.put("ok", true);
+                      o.put("items", lib.itemsJson(items));
+                      if (items.isEmpty()) o.put("msg", "ไม่พบเพลงที่ค้นหา");
+                      return o.toString();
+                  } catch (JSONException e) {
+                      return error("อ่านผลค้นหาไม่ได้");
+                  }
+              }
+
+              private boolean playQueueItem(String id) {
+                  MediaController c = controller();
+                  if (c == null || id == null) return false;
+                  try {
+                      c.getTransportControls().skipToQueueItem(Long.parseLong(id));
+                  } catch (NumberFormatException e) {
+                      return false;
+                  }
+                  SystemClock.sleep(500);
+                  return true;
+              }
+
+              private boolean playMediaId(String id) {
+                  String pkg = currentPkg();
+                  if (pkg == null || id == null) return false;
+                  MediaBrowser b = lib.browser(pkg, browserServices().get(pkg));
+                  MediaController c = b != null ? lib.controllerFor(b) : controllerForPkg(pkg);
+                  if (c == null) return false;
+                  pauseOthers(pkg);
+                  selectedPkg = pkg;
+                  c.getTransportControls().playFromMediaId(id, new Bundle());
+                  SystemClock.sleep(900);
+                  return true;
+              }
+
+              private boolean playSearch(String q) {
+                  String pkg = currentPkg();
+                  if (pkg == null || q == null || q.trim().isEmpty()) return false;
+                  MediaController c = controllerForPkg(pkg);
+                  if (c == null) return false;
+                  pauseOthers(pkg);
+                  selectedPkg = pkg;
+                  c.getTransportControls().playFromSearch(q.trim(), new Bundle());
+                  SystemClock.sleep(1500);
+                  return true;
               }
 
               /** ส่งปุ่ม "เล่น" ไปที่แอปนั้นโดยตรง (สำรอง) */
@@ -993,190 +1638,86 @@ jobs:
           }
           R4EOF
           mkdir -p app/src/main/java/com/r4remote
-          cat > app/src/main/java/com/r4remote/MainActivity.java <<'R4EOF'
+          cat > app/src/main/java/com/r4remote/Util.java <<'R4EOF'
           package com.r4remote;
 
-          import android.app.Activity;
+          import android.content.Context;
           import android.content.Intent;
-          import android.graphics.Bitmap;
-          import android.graphics.Color;
-          import android.graphics.Typeface;
-          import android.net.Uri;
-          import android.os.Build;
-          import android.os.Bundle;
-          import android.os.Handler;
-          import android.os.Looper;
-          import android.os.PowerManager;
+          import android.content.SharedPreferences;
           import android.provider.Settings;
-          import android.view.Gravity;
-          import android.view.ViewGroup;
-          import android.widget.Button;
-          import android.widget.ImageView;
-          import android.widget.LinearLayout;
-          import android.widget.ScrollView;
-          import android.widget.TextView;
 
-          import com.google.zxing.BarcodeFormat;
-          import com.google.zxing.common.BitMatrix;
-          import com.google.zxing.qrcode.QRCodeWriter;
+          import java.net.Inet4Address;
+          import java.net.InetAddress;
+          import java.net.NetworkInterface;
+          import java.security.SecureRandom;
+          import java.util.Collections;
 
-          public class MainActivity extends Activity {
-              private static final int BG = Color.parseColor("#0f1115");
-              private static final int FG = Color.parseColor("#f2f3f5");
-              private static final int MUTED = Color.parseColor("#8b919c");
-              private static final int ACCENT = Color.parseColor("#1ed760");
+          final class Util {
+              static final int PORT = 8765;
+              private static final String PREFS = "r4remote";
 
-              private TextView statusText, urlText, hintText;
-              private ImageView qr;
-              private Button accessBtn, batteryBtn, toggleBtn;
-              private final Handler handler = new Handler(Looper.getMainLooper());
+              private Util() {}
 
-              @Override
-              protected void onCreate(Bundle savedInstanceState) {
-                  super.onCreate(savedInstanceState);
-                  getWindow().setStatusBarColor(BG);
-                  int pad = dp(20);
+              private static SharedPreferences prefs(Context c) {
+                  return c.getSharedPreferences(PREFS, Context.MODE_PRIVATE);
+              }
 
-                  LinearLayout col = new LinearLayout(this);
-                  col.setOrientation(LinearLayout.VERTICAL);
-                  col.setGravity(Gravity.CENTER_HORIZONTAL);
-                  col.setPadding(pad, pad, pad, pad);
-                  col.setBackgroundColor(BG);
-
-                  TextView title = text("รีโมทเพลง R4", 24, FG);
-                  title.setTypeface(Typeface.DEFAULT_BOLD);
-                  col.addView(title);
-
-                  statusText = text("", 15, MUTED);
-                  statusText.setPadding(0, dp(6), 0, dp(14));
-                  col.addView(statusText);
-
-                  accessBtn = button(v -> startActivity(new Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)));
-                  col.addView(accessBtn);
-
-                  batteryBtn = button(v -> {
-                      Intent i = new Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,
-                              Uri.parse("package:" + getPackageName()));
-                      try {
-                          startActivity(i);
-                      } catch (Exception e) {
-                          startActivity(new Intent(Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS));
-                      }
-                  });
-                  col.addView(batteryBtn);
-
-                  toggleBtn = button(v -> {
-                      boolean run = !Util.wantRunning(this);
-                      Util.setWantRunning(this, run);
-                      if (run) Util.startService(this);
-                      else Util.stopService(this);
-                      refresh();
-                  });
-                  col.addView(toggleBtn);
-
-                  qr = new ImageView(this);
-                  LinearLayout.LayoutParams qp = new LinearLayout.LayoutParams(dp(240), dp(240));
-                  qp.topMargin = dp(20);
-                  col.addView(qr, qp);
-
-                  urlText = text("", 15, FG);
-                  urlText.setTextIsSelectable(true);
-                  urlText.setPadding(0, dp(10), 0, 0);
-                  col.addView(urlText);
-
-                  hintText = text("", 13, MUTED);
-                  hintText.setPadding(0, dp(10), 0, 0);
-                  col.addView(hintText);
-
-                  ScrollView sv = new ScrollView(this);
-                  sv.setBackgroundColor(BG);
-                  sv.setFillViewport(true);
-                  sv.addView(col);
-                  setContentView(sv);
-
-                  if (Build.VERSION.SDK_INT >= 33) {
-                      requestPermissions(new String[]{"android.permission.POST_NOTIFICATIONS"}, 1);
+              /** รหัสลับในลิงก์ สุ่มครั้งเดียวแล้วจำไว้ ลิงก์จึงไม่เปลี่ยน */
+              static synchronized String token(Context c) {
+                  SharedPreferences p = prefs(c);
+                  String t = p.getString("token", null);
+                  if (t == null) {
+                      String chars = "abcdefghjkmnpqrstuvwxyz23456789";
+                      SecureRandom r = new SecureRandom();
+                      StringBuilder sb = new StringBuilder();
+                      for (int i = 0; i < 8; i++) sb.append(chars.charAt(r.nextInt(chars.length())));
+                      t = sb.toString();
+                      p.edit().putString("token", t).apply();
                   }
-              }
-
-              @Override
-              protected void onResume() {
-                  super.onResume();
-                  refresh();
-                  // ถ้าเคยเปิดไว้แต่ service ถูกระบบปิด ให้เปิดใหม่
-                  if (Util.wantRunning(this)) Util.startService(this);
-              }
-
-              private void refresh() {
-                  handler.removeCallbacksAndMessages(null);
-                  boolean access = Util.hasMediaAccess(this);
-                  boolean battery = getSystemService(PowerManager.class).isIgnoringBatteryOptimizations(getPackageName());
-                  boolean running = Util.wantRunning(this);
-
-                  accessBtn.setText(access ? "✓ อนุญาตเข้าถึงการแจ้งเตือนแล้ว" : "1. อนุญาตเข้าถึงการแจ้งเตือน (จำเป็น)");
-                  accessBtn.setTextColor(access ? ACCENT : FG);
-                  batteryBtn.setText(battery ? "✓ ไม่จำกัดแบตเตอรี่แล้ว" : "2. ปิดการจำกัดแบตเตอรี่ (แนะนำ)");
-                  batteryBtn.setTextColor(battery ? ACCENT : FG);
-                  toggleBtn.setText(running ? "หยุดรีโมท" : "3. เริ่มรีโมท");
-
-                  String url = Util.url(this);
-                  if (!running) {
-                      statusText.setText("หยุดอยู่");
-                      qr.setImageBitmap(null);
-                      urlText.setText("");
-                      hintText.setText("ทำตามขั้นที่ 1–3 แล้วสแกน QR ด้วยกล้อง iPhone");
-                  } else if (url == null) {
-                      statusText.setText("ยังไม่ได้ต่อ Wi-Fi");
-                      qr.setImageBitmap(null);
-                      urlText.setText("");
-                      hintText.setText("ต่อ Wi-Fi วงเดียวกับ iPhone");
-                      handler.postDelayed(this::refresh, 3000);
-                  } else {
-                      statusText.setText("กำลังทำงาน");
-                      qr.setImageBitmap(qrBitmap(url));
-                      urlText.setText(url);
-                      hintText.setText("สแกน QR ด้วยกล้อง iPhone แล้วเปิดใน Safari\n"
-                              + "จากนั้นกดแชร์ → เพิ่มไปยังหน้าจอโฮม\n"
-                              + "ปิดหน้าจอ R4 ได้ รีโมทยังทำงานอยู่");
-                  }
-              }
-
-              private static Bitmap qrBitmap(String s) {
-                  try {
-                      int size = 480;
-                      BitMatrix m = new QRCodeWriter().encode(s, BarcodeFormat.QR_CODE, size, size);
-                      int[] px = new int[size * size];
-                      for (int y = 0; y < size; y++)
-                          for (int x = 0; x < size; x++)
-                              px[y * size + x] = m.get(x, y) ? Color.BLACK : Color.WHITE;
-                      return Bitmap.createBitmap(px, size, size, Bitmap.Config.RGB_565);
-                  } catch (Exception e) {
-                      return null;
-                  }
-              }
-
-              private TextView text(String s, int sp, int color) {
-                  TextView t = new TextView(this);
-                  t.setText(s);
-                  t.setTextSize(sp);
-                  t.setTextColor(color);
-                  t.setGravity(Gravity.CENTER);
                   return t;
               }
 
-              private Button button(android.view.View.OnClickListener l) {
-                  Button b = new Button(this);
-                  b.setAllCaps(false);
-                  b.setOnClickListener(l);
-                  LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                          ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                  lp.topMargin = dp(8);
-                  b.setLayoutParams(lp);
-                  return b;
+              static boolean wantRunning(Context c) {
+                  return prefs(c).getBoolean("run", false);
               }
 
-              private int dp(int v) {
-                  return Math.round(v * getResources().getDisplayMetrics().density);
+              static void setWantRunning(Context c, boolean run) {
+                  prefs(c).edit().putBoolean("run", run).apply();
+              }
+
+              static void startService(Context c) {
+                  c.startForegroundService(new Intent(c, RemoteService.class));
+              }
+
+              static void stopService(Context c) {
+                  c.stopService(new Intent(c, RemoteService.class));
+              }
+
+              /** IP ของเครื่องในวง Wi-Fi (เลือก wlan ก่อน) */
+              static String ip() {
+                  String fallback = null;
+                  try {
+                      for (NetworkInterface ni : Collections.list(NetworkInterface.getNetworkInterfaces())) {
+                          if (!ni.isUp() || ni.isLoopback()) continue;
+                          for (InetAddress a : Collections.list(ni.getInetAddresses())) {
+                              if (!(a instanceof Inet4Address) || a.isLoopbackAddress()) continue;
+                              if (ni.getName().startsWith("wlan")) return a.getHostAddress();
+                              if (fallback == null) fallback = a.getHostAddress();
+                          }
+                      }
+                  } catch (Exception ignored) {
+                  }
+                  return fallback;
+              }
+
+              static String url(Context c) {
+                  String ip = ip();
+                  return ip == null ? null : "http://" + ip + ":" + PORT + "/?k=" + token(c);
+              }
+
+              static boolean hasMediaAccess(Context c) {
+                  String s = Settings.Secure.getString(c.getContentResolver(), "enabled_notification_listeners");
+                  return s != null && s.contains(c.getPackageName());
               }
           }
           R4EOF
