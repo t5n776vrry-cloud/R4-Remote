@@ -1,4 +1,4 @@
-# รีโมทเพลง R4 v1.8 — ไฟล์เดียวจบ
+# รีโมทเพลง R4 v1.9 — ไฟล์เดียวจบ
 # วางไฟล์นี้ไว้ที่ .github/workflows/build.yml ใน GitHub repo
 # GitHub จะสร้างโปรเจกต์และไฟล์ R4Remote.apk ให้เอง (ดูที่หน้า Releases)
 name: Build R4Remote APK
@@ -74,8 +74,8 @@ jobs:
                   applicationId 'com.r4remote'
                   minSdk 26
                   targetSdk 33
-                  versionCode 9
-                  versionName '1.8'
+                  versionCode 10
+                  versionName '1.9'
               }
 
               // ใช้กุญแจเซ็นแอปตัวเดิมทุกครั้ง เพื่อให้ติดตั้งเวอร์ชันใหม่ทับได้โดยไม่ต้องลบแอปเก่า
@@ -107,6 +107,8 @@ jobs:
               <uses-permission android:name="android.permission.INTERNET" />
               <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
               <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
+              <!-- ประกาศชื่อ r4remote.local ในวง Wi-Fi -->
+              <uses-permission android:name="android.permission.CHANGE_WIFI_MULTICAST_STATE" />
               <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
               <uses-permission android:name="android.permission.WAKE_LOCK" />
               <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -946,7 +948,8 @@ jobs:
                   } else {
                       statusText.setText("กำลังทำงาน");
                       qr.setImageBitmap(qrBitmap(url));
-                      urlText.setText(url);
+                      String ipUrl = Util.ipUrl(this);
+                      urlText.setText(url + "\n\nสำรอง (ถ้าชื่อด้านบนใช้ไม่ได้):\n" + ipUrl);
                       hintText.setText("สแกน QR ด้วยกล้อง iPhone แล้วเปิดใน Safari\n"
                               + "จากนั้นกดแชร์ → เพิ่มไปยังหน้าจอโฮม\n"
                               + "ปิดหน้าจอ R4 ได้ รีโมทยังทำงานอยู่");
@@ -989,6 +992,198 @@ jobs:
 
               private int dp(int v) {
                   return Math.round(v * getResources().getDisplayMetrics().density);
+              }
+          }
+          R4EOF
+          mkdir -p app/src/main/java/com/r4remote
+          cat > app/src/main/java/com/r4remote/Mdns.java <<'R4EOF'
+          package com.r4remote;
+
+          import android.content.Context;
+          import android.net.wifi.WifiManager;
+
+          import java.io.ByteArrayOutputStream;
+          import java.net.DatagramPacket;
+          import java.net.Inet4Address;
+          import java.net.InetAddress;
+          import java.net.InetSocketAddress;
+          import java.net.MulticastSocket;
+          import java.net.NetworkInterface;
+          import java.net.SocketTimeoutException;
+
+          /**
+           * ประกาศชื่อ r4remote.local ในวง Wi-Fi (mDNS / Bonjour แบบเดียวกับ AirPlay)
+           * iPhone จึงเปิด http://r4remote.local:8765 ได้ทุกวง Wi-Fi โดยไม่ต้องรู้เลข IP
+           * ถ้าเปลี่ยน Wi-Fi จะตรวจพบเองภายในไม่กี่วินาทีแล้วประกาศชื่อใหม่
+           */
+          final class Mdns {
+              static final String HOST = "r4remote";
+              static final String NAME = HOST + ".local";
+
+              private static final String GROUP = "224.0.0.251";
+              private static final int PORT = 5353;
+              private static final int TYPE_A = 1, TYPE_ANY = 255;
+
+              private final Context ctx;
+              private volatile boolean running;
+              private volatile MulticastSocket socket;
+              private Thread thread;
+              private WifiManager.MulticastLock lock;
+
+              Mdns(Context ctx) {
+                  this.ctx = ctx.getApplicationContext();
+              }
+
+              void start() {
+                  if (running) return;
+                  running = true;
+                  try {
+                      WifiManager wm = (WifiManager) ctx.getSystemService(Context.WIFI_SERVICE);
+                      lock = wm.createMulticastLock("r4remote-mdns");
+                      lock.setReferenceCounted(false);
+                      lock.acquire();
+                  } catch (Exception ignored) {
+                  }
+                  thread = new Thread(this::loop, "r4remote-mdns");
+                  thread.start();
+              }
+
+              void stop() {
+                  running = false;
+                  MulticastSocket s = socket;
+                  if (s != null) s.close();
+                  if (thread != null) thread.interrupt();
+                  try {
+                      if (lock != null && lock.isHeld()) lock.release();
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              private void loop() {
+                  while (running) {
+                      String ip = Util.ip();
+                      if (ip == null) {
+                          sleep(3000);
+                          continue;
+                      }
+                      MulticastSocket s = null;
+                      try {
+                          InetAddress addr = InetAddress.getByName(ip);
+                          NetworkInterface nif = NetworkInterface.getByInetAddress(addr);
+                          InetAddress group = InetAddress.getByName(GROUP);
+                          s = new MulticastSocket(PORT);
+                          s.setSoTimeout(4000);
+                          s.setTimeToLive(255);
+                          if (nif != null) {
+                              s.setNetworkInterface(nif);
+                              s.joinGroup(new InetSocketAddress(group, PORT), nif);
+                          } else {
+                              s.joinGroup(group);
+                          }
+                          socket = s;
+                          byte[] answer = answer(addr.getAddress());
+                          // ประกาศชื่อ 2 ครั้งเมื่อเริ่มหรือเปลี่ยน Wi-Fi
+                          send(s, answer, group, PORT);
+                          sleep(1000);
+                          send(s, answer, group, PORT);
+
+                          byte[] buf = new byte[1500];
+                          while (running) {
+                              if (!ip.equals(Util.ip())) break; // เปลี่ยน Wi-Fi แล้ว เริ่มใหม่
+                              DatagramPacket p = new DatagramPacket(buf, buf.length);
+                              try {
+                                  s.receive(p);
+                              } catch (SocketTimeoutException t) {
+                                  continue;
+                              }
+                              if (!asksForUs(p.getData(), p.getLength())) continue;
+                              send(s, answer, group, PORT);
+                              if (p.getPort() != PORT) {
+                                  // ผู้ถามแบบเก่า: ตอบกลับตรงถึงผู้ถาม พร้อมรหัสคำถามเดิม
+                                  byte[] direct = answer.clone();
+                                  direct[0] = p.getData()[0];
+                                  direct[1] = p.getData()[1];
+                                  send(s, direct, p.getAddress(), p.getPort());
+                              }
+                          }
+                      } catch (Exception e) {
+                          if (running) sleep(5000);
+                      } finally {
+                          if (s != null) s.close();
+                          socket = null;
+                      }
+                  }
+              }
+
+              private static void send(MulticastSocket s, byte[] data, InetAddress to, int port) {
+                  try {
+                      s.send(new DatagramPacket(data, data.length, to, port));
+                  } catch (Exception ignored) {
+                  }
+              }
+
+              /** คำถามในแพ็กเก็ตนี้ถามหา r4remote.local (ชนิด A หรือ ANY) หรือไม่ */
+              static boolean asksForUs(byte[] d, int len) {
+                  if (len < 12) return false;
+                  if ((d[2] & 0x80) != 0) return false; // เป็นคำตอบ ไม่ใช่คำถาม
+                  int qd = ((d[4] & 0xff) << 8) | (d[5] & 0xff);
+                  int pos = 12;
+                  for (int q = 0; q < qd && pos < len; q++) {
+                      StringBuilder name = new StringBuilder();
+                      int next = readName(d, len, pos, name, 0);
+                      if (next < 0 || next + 4 > len) return false;
+                      int type = ((d[next] & 0xff) << 8) | (d[next + 1] & 0xff);
+                      pos = next + 4;
+                      if ((type == TYPE_A || type == TYPE_ANY) && NAME.equalsIgnoreCase(name.toString())) return true;
+                  }
+                  return false;
+              }
+
+              /** อ่านชื่อโดเมน (รองรับการย่อชื่อ) คืนตำแหน่งถัดไป หรือ -1 ถ้าผิดรูปแบบ */
+              private static int readName(byte[] d, int len, int pos, StringBuilder out, int depth) {
+                  if (depth > 10) return -1;
+                  while (pos < len) {
+                      int l = d[pos] & 0xff;
+                      if (l == 0) return pos + 1;
+                      if ((l & 0xc0) == 0xc0) {
+                          if (pos + 1 >= len) return -1;
+                          int ptr = ((l & 0x3f) << 8) | (d[pos + 1] & 0xff);
+                          if (readName(d, len, ptr, out, depth + 1) < 0) return -1;
+                          return pos + 2;
+                      }
+                      if (pos + 1 + l > len) return -1;
+                      if (out.length() > 0) out.append('.');
+                      out.append(new String(d, pos + 1, l, java.nio.charset.StandardCharsets.US_ASCII));
+                      pos += 1 + l;
+                  }
+                  return -1;
+              }
+
+              /** คำตอบ: r4remote.local = เลข IP ปัจจุบัน */
+              static byte[] answer(byte[] ipv4) {
+                  ByteArrayOutputStream b = new ByteArrayOutputStream();
+                  int[] header = {0, 0, 0x84, 0x00, 0, 0, 0, 1, 0, 0, 0, 0}; // ตอบแบบมีอำนาจ, 1 คำตอบ
+                  for (int h : header) b.write(h);
+                  for (String label : NAME.split("\\.")) {
+                      b.write(label.length());
+                      b.write(label.getBytes(java.nio.charset.StandardCharsets.US_ASCII), 0, label.length());
+                  }
+                  b.write(0);
+                  int[] rest = {0, TYPE_A, 0x80, 0x01, 0, 0, 0, 120, 0, 4}; // A, IN+cache-flush, TTL 120, ยาว 4
+                  for (int r : rest) b.write(r);
+                  b.write(ipv4, 0, 4);
+                  return b.toByteArray();
+              }
+
+              private static void sleep(long ms) {
+                  try {
+                      Thread.sleep(ms);
+                  } catch (InterruptedException ignored) {
+                  }
+              }
+
+              static boolean isIpv4(InetAddress a) {
+                  return a instanceof Inet4Address;
               }
           }
           R4EOF
@@ -1082,6 +1277,7 @@ jobs:
               private final Map<String, byte[]> iconCache = new ConcurrentHashMap<>();
               private Library lib;
               private Searcher searcher;
+              private Mdns mdns;
 
               @Override
               public void onCreate() {
@@ -1105,6 +1301,8 @@ jobs:
 
                   pool = Executors.newCachedThreadPool();
                   new Thread(this::serve, "r4remote-http").start();
+                  mdns = new Mdns(this);
+                  mdns.start();
               }
 
               @Override
@@ -1121,6 +1319,7 @@ jobs:
                   if (pool != null) pool.shutdownNow();
                   if (wakeLock != null && wakeLock.isHeld()) wakeLock.release();
                   if (wifiLock != null && wifiLock.isHeld()) wifiLock.release();
+                  if (mdns != null) mdns.stop();
                   super.onDestroy();
               }
 
@@ -1949,7 +2148,13 @@ jobs:
                   return fallback;
               }
 
+              /** ลิงก์ถาวร: ใช้ชื่อ r4remote.local แทนเลข IP จึงใช้ได้ทุกวง Wi-Fi */
               static String url(Context c) {
+                  return Util.ip() == null ? null : "http://" + Mdns.NAME + ":" + PORT + "/?k=" + token(c);
+              }
+
+              /** ลิงก์สำรองแบบเลข IP (เผื่ออุปกรณ์ที่หาชื่อ .local ไม่เจอ) */
+              static String ipUrl(Context c) {
                   String ip = ip();
                   return ip == null ? null : "http://" + ip + ":" + PORT + "/?k=" + token(c);
               }
